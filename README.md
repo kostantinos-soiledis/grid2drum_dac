@@ -6,7 +6,7 @@ Drum-grid–conditioned audio generation via latent diffusion in a PCA subspace 
 
 ## How it works
 
-![Model overview: training (top) and inference (bottom)](paper/figures/representation/semantic_pca_dac_diffusion_story_cropped.png)
+![Model overview: training (top) and inference (bottom)](figures/semantic_pca_dac_diffusion_story_cropped.png)
 
 **Training (top):** target audio is encoded by a frozen [DAC](https://github.com/descriptinc/descript-audio-codec) codec (9 RVQ codebooks); the summed codebook embeddings are projected to a normalized 72-dim PCA latent sequence. A trainable multiscale frontend turns the drum grid into a conditioning sequence, and a shared DiT denoiser is trained with noise-prediction MSE (optionally with RVQ-codebook regularization).
 
@@ -14,7 +14,7 @@ Drum-grid–conditioned audio generation via latent diffusion in a PCA subspace 
 
 Qualitative comparison against the direct PCA-regressor baseline:
 
-![Qualitative spectrogram comparison](paper/figures/qualitative/spectrogram_comparison.png)
+![Qualitative spectrogram comparison](figures/spectrogram_comparison.png)
 
 ## Try the demo
 

@@ -31,3 +31,6 @@ sketch_diffusion_out/
 .vscode/
 .idea/
 *.swp
+
+# Paper sources stay local only
+/paper/
