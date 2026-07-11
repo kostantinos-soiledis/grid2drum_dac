@@ -2,7 +2,7 @@
 
 Drum-grid–conditioned audio generation via latent diffusion in a PCA subspace of the DAC codec.
 
-**▶ Listen first: [live demo page](https://kostantinos-soiledis.github.io/grid2drum_dac/)** — side-by-side generated, regressor-baseline, and ground-truth drum audio for held-out examples.
+**▶ Listen first: [live demo page](https://anonymous.4open.science/w/grid2drum_dac-4841/)** — side-by-side generated, regressor-baseline, and ground-truth drum audio for held-out examples.
 
 ## How it works
 
@@ -22,9 +22,12 @@ Model weights (~2 GB) ship via Git LFS:
 
 ```bash
 git lfs install
-git clone https://github.com/kostantinos-soiledis/grid2drum_dac.git
-# code-only clone, no weights: GIT_LFS_SKIP_SMUDGE=1 git clone <url>
+git clone <this-repository-url>
+# code-only clone, no weights: GIT_LFS_SKIP_SMUDGE=1 git clone <this-repository-url>
 ```
+
+> Viewing this through an anonymized mirror? The mirror cannot serve the LFS
+> model weights, but the demo page above works fully in the browser.
 
 The shipped checkpoints are described in [runs/README.md](runs/README.md) and
 [runs/weights/manifest.json](runs/weights/manifest.json).
