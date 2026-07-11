@@ -3,11 +3,22 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .ipynb_checkpoints/
+.venv/
+venv/
 
 # Demo runtime outputs
 code/demo/.listen_ui_runs/
 sketch_diffusion_out/
-/tmp/drumtogrid_smoke_audio/
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.out
+*.synctex.gz
+*.toc
 
 # Local scratch / logs
 *.log

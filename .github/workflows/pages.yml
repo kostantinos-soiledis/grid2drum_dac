@@ -1,0 +1,38 @@
+name: Deploy demo page to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # Default checkout does not smudge LFS files; the demo site's audio
+      # is stored as plain git blobs (see .gitattributes) so nothing from
+      # LFS is needed to build the page.
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: results/paper_results/single_kit_examples
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
