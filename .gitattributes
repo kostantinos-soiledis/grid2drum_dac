@@ -9,3 +9,6 @@
 # GitHub Pages demo site: keep its small audio as plain git blobs,
 # because Pages serves LFS pointer files instead of their content
 results/paper_results/single_kit_examples/audio/** -filter -diff -merge
+
+# Static website audio must be normal Git files
+docs/audio/** -filter -diff -merge

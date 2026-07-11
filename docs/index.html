@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DrumToGrid RVQ-CE Qualitative Examples</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --ink: #1d2430; --muted: #5f6875; --line: #d7dce2;
+  --panel: #ffffff; --paper: #f4f5f2; --accent: #0b6b58; --accent-2: #214f85;
+  --imgbg: #101722;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --ink:#e7ecf2; --muted:#9aa4b2; --line:#2a323d; --panel:#161c24; --paper:#0e131a; --accent:#3fd6b0; --accent-2:#7fb0ff; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--paper); color:var(--ink);
+  font:15px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+header.top { background:var(--panel); border-bottom:1px solid var(--line);
+  padding:28px max(18px, calc((100vw - 1180px)/2)); }
+.eyebrow { margin:0 0 8px; color:var(--accent); font-size:12px; font-weight:800;
+  letter-spacing:.08em; text-transform:uppercase; }
+h1 { margin:0; font-size:clamp(28px,5vw,48px); line-height:1.02; }
+.summary { max-width:860px; margin:12px 0 0; color:var(--muted); font-size:16px; }
+main { max-width:1180px; margin:0 auto; padding:22px 18px 64px; }
+.stats { display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:10px; margin-bottom:22px; }
+.stat { min-width:0; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; }
+.stat b { display:block; font-size:18px; line-height:1.1; }
+.stat span { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+.results { margin:0 0 24px; }
+.results-head h2 { margin:0 0 4px; font-size:20px; }
+.results-head p { margin:0 0 12px; color:var(--muted); font-size:13px; max-width:820px; }
+.best-key { color:var(--accent); font-weight:700; }
+.table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:var(--panel); }
+table { border-collapse:collapse; width:100%; font-size:13.5px; }
+thead th { text-align:right; padding:10px 12px; color:var(--muted); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; border-bottom:1px solid var(--line); white-space:nowrap; }
+thead th:first-child { text-align:left; }
+tbody th { text-align:left; padding:11px 12px; font-weight:500; }
+tbody th b { display:block; font-size:13.5px; font-weight:700; }
+tbody th span { display:block; color:var(--muted); font-size:11.5px; }
+tbody td { text-align:right; padding:11px 12px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+tbody tr + tr th, tbody tr + tr td { border-top:1px solid var(--line); }
+td.best { color:var(--accent); font-weight:800; }
+tr.ceiling th, tr.ceiling td { color:var(--muted); font-style:italic; }
+tr.ceiling th b { font-weight:600; }
+.ship { display:inline-block; font-size:9.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:#fff; background:var(--accent); border-radius:999px; padding:1px 6px; vertical-align:middle; font-style:normal; }
+.gallery { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; display:flex; flex-direction:column; }
+.card-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); }
+.card-head h2 { margin:0; font-size:16px; }
+.card-head .sid { color:var(--muted); font-weight:500; font-size:13px; }
+.sub { margin:4px 0 0; color:var(--muted); font-size:12.5px; }
+.chip { flex:none; align-self:center; font-size:11px; font-weight:700; color:var(--accent-2);
+  border:1px solid var(--line); border-radius:999px; padding:4px 10px; white-space:nowrap; }
+.card-body { padding:14px 16px 16px; display:flex; flex-direction:column; gap:12px; }
+.grid-fig { margin:0; background:var(--imgbg); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+.grid-fig img { display:block; width:100%; height:auto; }
+.grid-fig figcaption { padding:8px 10px; color:var(--muted); font-size:12px; background:var(--panel); border-top:1px solid var(--line); }
+.tracks { display:grid; gap:8px; }
+.track { display:grid; grid-template-columns:minmax(120px,150px) minmax(0,1fr); gap:12px; align-items:center; }
+.track-title b { display:block; font-size:13.5px; }
+.track-title span { display:block; color:var(--muted); font-size:11.5px; }
+audio { width:100%; height:34px; }
+.latent { border:1px solid var(--line); border-radius:8px; padding:0; }
+.latent summary { cursor:pointer; padding:9px 12px; font-size:12.5px; color:var(--accent-2); font-weight:700; }
+.latent img { display:block; width:100%; height:auto; background:var(--imgbg); border-top:1px solid var(--line); }
+footer { max-width:1180px; margin:0 auto; padding:0 18px 48px; color:var(--muted); font-size:13px; }
+footer code { background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:1px 5px; }
+@media (max-width:900px) { .gallery { grid-template-columns:1fr; } .stats { grid-template-columns:repeat(2,1fr); } }
+@media (max-width:520px) { .stats { grid-template-columns:1fr; } .track { grid-template-columns:1fr; gap:6px; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <p class="eyebrow">Single-kit &middot; 4-beat rendering</p>
+  <h1>DrumToGrid RVQ-CE Qualitative Examples</h1>
+  <p class="summary">Each example takes a hard rhythmic <strong>input drum grid</strong> (shown as a family&times;16th-note piano-roll) and renders drum audio in the DAC PCA-72 subspace. For every clip we compare three signals: the <strong>diffusion</strong> model (RVQ-CE, 25 steps), the deterministic <strong>direct PCA regressor</strong> baseline, and the <strong>ground-truth</strong> DAC reconstruction &mdash; across 6 held-out validation clips spanning tempo 93&#8211;145 BPM. All audio and images are local relative assets, so the page runs as static content.</p>
+</header>
+<main>
+  <section class="stats" aria-label="Model summary">
+    <div class="stat"><b>146</b><span>Best epoch</span></div>
+    <div class="stat"><b>25</b><span>Sampling steps</span></div>
+    <div class="stat"><b>PCA-72</b><span>Diffusion latent</span></div>
+    <div class="stat"><b>DAC 44.1k</b><span>Neural codec</span></div>
+    <div class="stat"><b>6</b><span>Validation clips</span></div>
+  </section>
+
+    <section class="results">
+      <div class="results-head">
+        <h2>Test-set results &mdash; full sweep</h2>
+        <p>Held-out test split (n=1733), reported in the paper. Same four-beat cache and objective for every row &mdash; a controlled representation/objective study, not a state-of-the-art ranking. Best per column (excluding the codec ceiling) in <span class="best-key">green</span>; rows tagged <span class="ship">shipped</span> are the checkpoints included in this repo.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Model</th><th>Steps</th><th>FAD ↓</th><th>Mel MAE dB ↓</th><th>Onset cos ↑</th><th>MRSTFT L1 ↓</th></tr></thead>
+          <tbody>
+            <tr class="ceiling"><th scope="row"><b>Target DAC reconstruction</b><span>codec ceiling</span></th><td>&ndash;</td><td>0.016</td><td>0.10</td><td>0.999</td><td>0.001</td></tr>
+            <tr><th scope="row"><b>Plain PCA diffusion</b><span>6-step</span></th><td>6</td><td>0.023</td><td>6.39</td><td>0.843</td><td>0.108</td></tr>
+            <tr><th scope="row"><b>Plain PCA diffusion</b><span>12-step</span></th><td>12</td><td>0.021</td><td>5.75</td><td>0.850</td><td>0.106</td></tr>
+            <tr><th scope="row"><b>Plain PCA diffusion <span class="ship">shipped</span></b><span>25-step</span></th><td>25</td><td class="best">0.019</td><td>5.69</td><td>0.848</td><td>0.106</td></tr>
+            <tr><th scope="row"><b>Plain PCA diffusion</b><span>50-step</span></th><td>50</td><td>0.024</td><td>5.71</td><td>0.839</td><td>0.109</td></tr>
+            <tr><th scope="row"><b>PCA diffusion + RVQ-CE</b><span>6-step</span></th><td>6</td><td>0.022</td><td>5.47</td><td class="best">0.866</td><td>0.105</td></tr>
+            <tr><th scope="row"><b>PCA diffusion + RVQ-CE</b><span>12-step</span></th><td>12</td><td>0.020</td><td class="best">5.39</td><td>0.864</td><td>0.106</td></tr>
+            <tr><th scope="row"><b>PCA diffusion + RVQ-CE <span class="ship">shipped</span></b><span>25-step</span></th><td>25</td><td>0.020</td><td>5.47</td><td>0.863</td><td class="best">0.104</td></tr>
+            <tr><th scope="row"><b>Direct PCA regressor <span class="ship">shipped</span></b><span>1-pass baseline</span></th><td>&ndash;</td><td>0.355</td><td>13.04</td><td>0.836</td><td>0.136</td></tr>
+            <tr><th scope="row"><b>Symbolic NN retrieval</b><span>baseline</span></th><td>&ndash;</td><td>0.025</td><td>17.54</td><td>0.330</td><td>0.208</td></tr>
+            <tr><th scope="row"><b>Symbolic grid render</b><span>baseline</span></th><td>&ndash;</td><td>0.551</td><td>19.27</td><td>0.763</td><td>0.264</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <section class="gallery">
+
+      <article class="card">
+        <header class="card-head">
+          <div>
+            <h2>Example 1 <span class="sid">drummer1/session1/126</span></h2>
+            <p class="sub">beats 12&#8211;15 &middot; 124 BPM &middot; 1.94s &middot; 24 onsets</p>
+          </div>
+          <span class="chip">Kick, Snare, Hi-hat</span>
+        </header>
+        <div class="card-body">
+          <figure class="grid-fig">
+            <img loading="lazy" src="assets/examples/ex01_grid.png" alt="Input drum grid for drummer1/session1/126">
+            <figcaption>Input &mdash; hard rhythmic sketch (family &times; 16th-note grid, shade = velocity)</figcaption>
+          </figure>
+          <div class="tracks">
+            <div class="track">
+              <div class="track-title"><b>Generated</b><span>Diffusion + RVQ-CE, 25 steps</span></div>
+              <audio controls preload="none" src="audio/examples/ex01_generated.wav"></audio>
+            </div>
+            <div class="track">
+              <div class="track-title"><b>Regressor</b><span>Direct PCA regressor (baseline, 1-pass)</span></div>
+              <audio controls preload="none" src="audio/examples/ex01_regressor.wav"></audio>
+            </div>
+            <div class="track">
+              <div class="track-title"><b>Reference</b><span>Ground-truth target, DAC reconstruction</span></div>
+              <audio controls preload="none" src="audio/examples/ex01_target.wav"></audio>
+            </div>
+          </div>
+          <details class="latent">
+            <summary>Predicted PCA latent trajectory</summary>
+            <img loading="lazy" src="assets/examples/ex01_latent.png" alt="Predicted latent trajectory for drummer1/session1/126">
+          </details>
+        </div>
+      </article>
+
+      <article class="card">
+        <header class="card-head">
+          <div>
+            <h2>Example 2 <span class="sid">drummer1/session2/62</span></h2>
+            <p class="sub">beats 12&#8211;15 &middot; 145 BPM &middot; 1.65s &middot; 10 onsets</p>
+          </div>
+          <span class="chip">Kick, Snare, Tom flr, Hi-hat</span>
+        </header>
+        <div class="card-body">
+          <figure class="grid-fig">
+            <img loading="lazy" src="assets/examples/ex02_grid.png" alt="Input drum grid for drummer1/session2/62">
+            <figcaption>Input &mdash; hard rhythmic sketch (family &times; 16th-note grid, shade = velocity)</figcaption>
+          </figure>
+          <div class="tracks">
+            <div class="track">
+              <div class="track-title"><b>Generated</b><span>Diffusion + RVQ-CE, 25 steps</span></div>
+              <audio controls preload="none" src="audio/examples/ex02_generated.wav"></audio>
+            </div>
+            <div class="track">
+              <div class="track-title"><b>Regressor</b><span>Direct PCA regressor (baseline, 1-pass)</span></div>
+              <audio controls preload="none" src="audio/examples/ex02_regressor.wav"></audio>
+            </div>
+            <div class="track">
+              <div class="track-title"><b>Reference</b><span>Ground-truth target, DAC reconstruction</span></div>
+              <audio controls preload="none" src="audio/examples/ex02_target.wav"></audio>
+            </div>
+          </div>
+          <details class="latent">
+            <summary>Predicted PCA latent trajectory</summary>
+            <img loading="lazy" src="assets/examples/ex02_latent.png" alt="Predicted latent trajectory for drummer1/session2/62">
+          </details>
+        </div>
+      </article>
+
+      <article class="card">
+        <header class="card-head">
+          <div>
+            <h2>Example 3 <span class="sid">drummer3/session2/25</span></h2>
+            <p class="sub">beats 12&#8211;15 &middot; 93 BPM &middot; 2.58s &middot; 10 onsets</p>
+          </div>
+          <span class="chip">Kick, Snare, Hi-hat</span>
+        </header>
+        <div class="card-body">
+          <figure class="grid-fig">
+            <img loading="lazy" src="assets/examples/ex03_grid.png" alt="Input drum grid for drummer3/session2/25">
+            <figcaption>Input &mdash; hard rhythmic sketch (family &times; 16th-note grid, shade = velocity)</figcaption>
+          </figure>
+          <div class="tracks">
+            <div class="track">
+              <div class="track-title"><b>Generated</b><span>Diffusion + RVQ-CE, 25 steps</span></div>
+              <audio controls preload="none" src="audio/examples/ex03_generated.wav"></audio>
+            </div>
+            <div class="track">
+              <div class="track-title"><b>Regressor</b><span>Direct PCA regressor (baseline, 1-pass)</span></div>
+              <audio controls preload="none" src="audio/examples/ex03_regressor.wav"></audio>
+            </div>
+            <div class="track">
+              <div class="track-title"><b>Reference</b><span>Ground-truth target, DAC reconstruction</span></div>
+              <audio controls preload="none" src="audio/examples/ex03_target.wav"></audio>
+            </div>
+          </div>
+          <details class="latent">
+            <summary>Predicted PCA latent trajectory</summary>
+            <img loading="lazy" src="assets/examples/ex03_latent.png" alt="Predicted latent trajectory for drummer3/session2/25">
+          </details>
+        </div>
+      </article>
+
+      <article class="card">
+        <header class="card-head">
+          <div>
+            <h2>Example 4 <span class="sid">drummer7/session2/15</span></h2>
+            <p class="sub">beats 200&#8211;203 &middot; 118 BPM &middot; 2.04s &middot; 22 onsets</p>
+          </div>
+          <span class="chip">Kick, Snare, Tom mid, Tom flr, Hi-hat, Crash</span>
+        </header>
+        <div class="card-body">
+          <figure class="grid-fig">
+            <img loading="lazy" src="assets/examples/ex04_grid.png" alt="Input drum grid for drummer7/session2/15">
+            <figcaption>Input &mdash; hard rhythmic sketch (family &times; 16th-note grid, shade = velocity)</figcaption>
+          </figure>
+          <div class="tracks">
+            <div class="track">
+              <div class="track-title"><b>Generated</b><span>Diffusion + RVQ-CE, 25 steps</span></div>
+              <audio controls preload="none" src="audio/examples/ex04_generated.wav"></audio>
+            </div>
+            <div class="track">
+              <div class="track-title"><b>Regressor</b><span>Direct PCA regressor (baseline, 1-pass)</span></div>
+              <audio controls preload="none" src="audio/examples/ex04_regressor.wav"></audio>
+            </div>
+            <div class="track">
+              <div class="track-title"><b>Reference</b><span>Ground-truth target, DAC reconstruction</span></div>
+              <audio controls preload="none" src="audio/examples/ex04_target.wav"></audio>
+            </div>
+          </div>
+          <details class="latent">
+            <summary>Predicted PCA latent trajectory</summary>
+            <img loading="lazy" src="assets/examples/ex04_latent.png" alt="Predicted latent trajectory for drummer7/session2/15">
+          </details>
+        </div>
+      </article>
+
+      <article class="card">
+        <header class="card-head">
+          <div>
+            <h2>Example 5 <span class="sid">drummer5/session1/11</span></h2>
+            <p class="sub">beats 236&#8211;239 &middot; 95 BPM &middot; 2.53s &middot; 24 onsets</p>
+          </div>
+          <span class="chip">Kick, Snare, Tom hi, Tom flr, Hi-hat, Crash</span>
+        </header>
+        <div class="card-body">
+          <figure class="grid-fig">
+            <img loading="lazy" src="assets/examples/ex05_grid.png" alt="Input drum grid for drummer5/session1/11">
+            <figcaption>Input &mdash; hard rhythmic sketch (family &times; 16th-note grid, shade = velocity)</figcaption>
+          </figure>
+          <div class="tracks">
+            <div class="track">
+              <div class="track-title"><b>Generated</b><span>Diffusion + RVQ-CE, 25 steps</span></div>
+              <audio controls preload="none" src="audio/examples/ex05_generated.wav"></audio>
+            </div>
+            <div class="track">
+              <div class="track-title"><b>Regressor</b><span>Direct PCA regressor (baseline, 1-pass)</span></div>
+              <audio controls preload="none" src="audio/examples/ex05_regressor.wav"></audio>
+            </div>
+            <div class="track">
+              <div class="track-title"><b>Reference</b><span>Ground-truth target, DAC reconstruction</span></div>
+              <audio controls preload="none" src="audio/examples/ex05_target.wav"></audio>
+            </div>
+          </div>
+          <details class="latent">
+            <summary>Predicted PCA latent trajectory</summary>
+            <img loading="lazy" src="assets/examples/ex05_latent.png" alt="Predicted latent trajectory for drummer5/session1/11">
+          </details>
+        </div>
+      </article>
+
+      <article class="card">
+        <header class="card-head">
+          <div>
+            <h2>Example 6 <span class="sid">drummer1/session3/13</span></h2>
+            <p class="sub">beats 576&#8211;579 &middot; 115 BPM &middot; 2.08s &middot; 25 onsets</p>
+          </div>
+          <span class="chip">Kick, Snare, Tom hi, Tom flr, Hi-hat, Crash</span>
+        </header>
+        <div class="card-body">
+          <figure class="grid-fig">
+            <img loading="lazy" src="assets/examples/ex06_grid.png" alt="Input drum grid for drummer1/session3/13">
+            <figcaption>Input &mdash; hard rhythmic sketch (family &times; 16th-note grid, shade = velocity)</figcaption>
+          </figure>
+          <div class="tracks">
+            <div class="track">
+              <div class="track-title"><b>Generated</b><span>Diffusion + RVQ-CE, 25 steps</span></div>
+              <audio controls preload="none" src="audio/examples/ex06_generated.wav"></audio>
+            </div>
+            <div class="track">
+              <div class="track-title"><b>Regressor</b><span>Direct PCA regressor (baseline, 1-pass)</span></div>
+              <audio controls preload="none" src="audio/examples/ex06_regressor.wav"></audio>
+            </div>
+            <div class="track">
+              <div class="track-title"><b>Reference</b><span>Ground-truth target, DAC reconstruction</span></div>
+              <audio controls preload="none" src="audio/examples/ex06_target.wav"></audio>
+            </div>
+          </div>
+          <details class="latent">
+            <summary>Predicted PCA latent trajectory</summary>
+            <img loading="lazy" src="assets/examples/ex06_latent.png" alt="Predicted latent trajectory for drummer1/session3/13">
+          </details>
+        </div>
+      </article>
+  </section>
+</main>
+<footer>
+  <p>Generated with the RVQ-CE 25-step checkpoint (<code>runs/runs_dac_ce/dac_25steps</code>), guidance 1.0, seed 1234, 44100 Hz. Inputs are held-out validation clips from the E-GMD-derived four-beat cache; the drum grid is the model's hard rhythmic conditioning.</p>
+</footer>
+<script>
+document.addEventListener("play", (event) => {
+  if (event.target.tagName !== "AUDIO") return;
+  document.querySelectorAll("audio").forEach((audio) => { if (audio !== event.target) audio.pause(); });
+}, true);
+</script>
+</body>
+</html>
