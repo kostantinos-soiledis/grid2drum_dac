@@ -1,0 +1,13 @@
+{
+  "bootstrap_samples": 2000,
+  "figure_pdf": "figures/ablation/frontend_conditioning_sensitivity.pdf",
+  "inference_root": "eval/frontend_ablation",
+  "inference_summary": "eval/frontend_ablation/suite_summary.json",
+  "num_inference_rows": 16,
+  "num_pairwise_rows": 48,
+  "num_training_rows": 6,
+  "permutation_samples": 2000,
+  "seed": 1234,
+  "training_root": "eval/frontend_training_ablation",
+  "training_summary": "eval/frontend_training_ablation/suite_summary.json"
+}

@@ -1,0 +1,76 @@
+{
+  "cache_root": "<DRUMTOGRID_ROOT>/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+  "groups": {
+    "cymbal": {
+      "f1": 0.2312569936590824,
+      "fn": 249,
+      "fp": 14178,
+      "precision": 0.13273794959628088,
+      "pred_count": 16348,
+      "recall": 0.8970649028524184,
+      "target_count": 2419,
+      "tp": 2170
+    },
+    "hihat": {
+      "f1": 0.6902600635796086,
+      "fn": 628,
+      "fp": 7459,
+      "precision": 0.5471159684274438,
+      "pred_count": 16470,
+      "recall": 0.9348480132793858,
+      "target_count": 9639,
+      "tp": 9011
+    },
+    "kick": {
+      "f1": 0.5038735667802914,
+      "fn": 225,
+      "fp": 10982,
+      "precision": 0.34133029448809454,
+      "pred_count": 16673,
+      "recall": 0.9619675456389453,
+      "target_count": 5916,
+      "tp": 5691
+    },
+    "snare": {
+      "f1": 0.5568893922234806,
+      "fn": 818,
+      "fp": 10920,
+      "precision": 0.40314822912111936,
+      "pred_count": 18296,
+      "recall": 0.9001708567244325,
+      "target_count": 8194,
+      "tp": 7376
+    },
+    "tom": {
+      "f1": 0.18179001187832464,
+      "fn": 84,
+      "fp": 15759,
+      "precision": 0.10046235515725783,
+      "pred_count": 17519,
+      "recall": 0.9544468546637744,
+      "target_count": 1844,
+      "tp": 1760
+    }
+  },
+  "hop_length": 256,
+  "macro_f1": 0.4328140056241575,
+  "macro_groups": [
+    "kick",
+    "snare",
+    "tom",
+    "hihat",
+    "cymbal"
+  ],
+  "macro_precision": 0.3049589593580393,
+  "macro_recall": 0.9296996346317913,
+  "metric_name": "proxy_control_faithfulness_onset_alignment",
+  "n_fft": 1024,
+  "note": "Heuristic band-flux onset proxy; use the same settings for all systems.",
+  "num_examples": 1733,
+  "predictions_dir": "<DRUMTOGRID_ROOT>/runs_baselines/dac_test_v1/grid_render",
+  "refractory_ms": 45.0,
+  "split": "test",
+  "threshold_quantile": 0.86,
+  "threshold_std": 0.45,
+  "tolerance_ms": 50.0
+}

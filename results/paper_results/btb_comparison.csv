@@ -1,0 +1,4 @@
+system,evaluation_set,n,FAD_VGGish,FAD_CLAP_music,onset_F1_percent,RMS_error_dBFS,CMLt,AMLt
+Break-the-Beat proposed,"E-GMD, Beat + Fill",,0.18,0.072,60.91,13.32,0.43,0.62
+Break-the-Beat proposed,"E-GMD + StemGMD",791,0.09,0.061,70.08,10.53,0.42,0.51
+Ours v4 proxy,"E-GMD held-out kits",109,0.947127,0.066156,92.94,4.14,0.674,0.748

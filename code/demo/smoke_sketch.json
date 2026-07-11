@@ -1,0 +1,18 @@
+{
+  "bpm": 120.0,
+  "hits": [
+    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+    [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+  ],
+  "controls": {
+    "swing": 0.0,
+    "humanize": 0.05,
+    "ghost_density": 0.15,
+    "kick_ghost_density": 0.1,
+    "snare_ghost_density": 0.1,
+    "hihat_density": 0.2,
+    "hihat_openness": 0.1,
+    "fill_density": 0.0
+  }
+}

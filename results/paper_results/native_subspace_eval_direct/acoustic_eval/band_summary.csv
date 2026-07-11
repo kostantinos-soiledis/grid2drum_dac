@@ -1,0 +1,2 @@
+model,low_flux_cosine,mid_flux_cosine,high_flux_cosine,band_balance_l1
+dac_native_25steps,0.6964704511502228,0.790190496776948,0.8543837513039156,0.035848665352344065

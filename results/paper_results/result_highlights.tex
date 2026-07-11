@@ -1,0 +1,8 @@
+\paragraph{Main observations.}
+The current artifacts support four controlled observations.
+First, Diffusion PCA+RVQ-CE 12 steps gives the lowest learned-system mel error (5.39 dB), a 58.6\% relative reduction from the direct PCA regressor (13.04 dB).
+Second, Diffusion PCA+RVQ-CE 6 steps gives the strongest onset-flux agreement among learned systems (0.866), supporting the auxiliary RVQ-CE term as codec-structure supervision rather than a discrete-token generator.
+Third, Diffusion PCA+RVQ-CE 25 steps gives the best learned-system MRSTFT (0.104), a 23.6\% relative reduction from direct PCA regression.
+Fourth, phase-sensitive waveform $L_1$ is the main counterexample: Direct PCA regressor has the lowest learned-system waveform $L_1$ (0.0451), so the diffusion results should be interpreted as spectral/transient improvements rather than universal samplewise reconstruction dominance.
+All completed diffusion rows are faster than real time in the stored run; RTF differences should be interpreted as implementation/runtime measurements rather than architectural consequences of RVQ-CE.
+The best completed diffusion $\mathrm{FAD}_{\infty}$ row is Diffusion PCA 25 steps (0.019).

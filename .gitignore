@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Demo runtime outputs
+code/demo/.listen_ui_runs/
+sketch_diffusion_out/
+/tmp/drumtogrid_smoke_audio/
+
+# Local scratch / logs
+*.log
+*.pid
+*.tmp
+.DS_Store
+.env
+
+# Editor
+.vscode/
+.idea/
+*.swp

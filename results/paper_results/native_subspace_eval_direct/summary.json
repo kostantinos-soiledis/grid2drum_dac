@@ -1,0 +1,138 @@
+{
+  "acoustic_eval_dir": "<DRUMTOGRID_ROOT>/paper_results/native_subspace_eval_direct/acoustic_eval",
+  "acoustic_summary": {
+    "ablations_root": "<DRUMTOGRID_ROOT>/paper_results/native_subspace_eval_direct/eval_input",
+    "band_profile_summary_csv": "band_profile_summary.csv",
+    "band_summary_csv": "band_summary.csv",
+    "bootstrap_samples": null,
+    "cache_root": "<DRUMTOGRID_ROOT>/paper_results/native_subspace_eval_direct/target_audio_cache",
+    "efficiency_available": true,
+    "efficiency_runs": [
+      {
+        "checkpoint_num_parameters_loaded": false,
+        "config_found": true,
+        "efficiency_fields_found": [
+          "audio_sec_per_sec",
+          "batch_size",
+          "best_checkpoint_epoch",
+          "clips_per_sec",
+          "codec_decode_sec_total",
+          "device_name",
+          "export_peak_gpu_mem_allocated_mb",
+          "export_peak_gpu_mem_reserved_mb",
+          "export_wall_sec_total",
+          "model_forward_sec_total",
+          "num_examples",
+          "num_parameters",
+          "rtf_end_to_end",
+          "rtf_model_only",
+          "time_to_best_checkpoint_sec",
+          "total_audio_sec_generated"
+        ],
+        "export_summary_found": true,
+        "history_found": true,
+        "model": "dac_native_25steps"
+      }
+    ],
+    "efficiency_summary_csv": "efficiency_summary.csv",
+    "evaluates_decoded_audio": "cache_native_sample_rate",
+    "fad_cache": null,
+    "fad_completed": false,
+    "fad_cuda_visible_devices": null,
+    "fad_device": null,
+    "fad_error": null,
+    "fad_inf_min_n": null,
+    "fad_inf_steps": null,
+    "fad_inf_workers": null,
+    "fad_model": null,
+    "fad_python": null,
+    "fad_repeat_summary_csv": null,
+    "fad_repeats": null,
+    "fad_requested": false,
+    "fad_seed": null,
+    "fad_workers": null,
+    "inference_alpha": null,
+    "inference_completed": false,
+    "inference_error": null,
+    "inference_summary_md": null,
+    "num_runs": 1,
+    "num_shared_examples": 1733,
+    "out_root": "<DRUMTOGRID_ROOT>/paper_results/native_subspace_eval_direct/acoustic_eval",
+    "overall_summary_csv": "overall_summary.csv",
+    "paired_metric_intervals_csv": null,
+    "paired_metric_significance_csv": null,
+    "per_clip_metrics_csv": "per_clip_metrics.csv",
+    "permutation_samples": null,
+    "references": [
+      {
+        "citation": "Kilgour et al., 2019. Fr\u00e9chet Audio Distance: A Reference-Free Metric for Evaluating Music Enhancement Algorithms.",
+        "url": "https://www.isca-archive.org/interspeech_2019/kilgour19_interspeech.html"
+      },
+      {
+        "citation": "Gui et al., 2024. Adapting Fr\u00e9chet Audio Distance for Generative Music Evaluation.",
+        "url": "https://www.microsoft.com/en-us/research/publication/adapting-frechet-audio-distance-for-generative-music-evaluation/"
+      },
+      {
+        "citation": "Gr\u00f6tschla et al., 2025. Benchmarking Music Generation Models and Metrics via Human Preference Studies.",
+        "url": "https://openreview.net/forum?id=105yqGIpVW"
+      },
+      {
+        "citation": "Saitis and Wallmark, 2024. Timbral brightness perception investigated through multimodal interference.",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/39090510/"
+      },
+      {
+        "citation": "Auditory and vibrotactile interactions in perception of timbre acoustic features, 2025.",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/41168236/"
+      }
+    ],
+    "runs": [
+      "dac_native_25steps"
+    ],
+    "sample_rate": 44100,
+    "sample_rates": [
+      44100
+    ],
+    "skip_inference": true,
+    "style_summary_csv": "style_summary.csv",
+    "uses_44k_targets": true
+  },
+  "cache_root": "<DRUMTOGRID_ROOT>/cache_4beats_dac44q9_dacsub72_bpmgeom_duration_v1",
+  "compat_cache_dir": "<DRUMTOGRID_ROOT>/paper_results/native_subspace_eval_direct/target_audio_cache",
+  "compat_cache_summary": {
+    "cache_root": "<DRUMTOGRID_ROOT>/cache_4beats_dac44q9_dacsub72_bpmgeom_duration_v1",
+    "context_ms": 20.0,
+    "num_examples": 1733,
+    "num_shards": 434,
+    "out_dir": "<DRUMTOGRID_ROOT>/paper_results/native_subspace_eval_direct/target_audio_cache",
+    "resolved_device": "cuda:1",
+    "sample_rate": 44100,
+    "split": "test"
+  },
+  "fad_model": "encodec-emb",
+  "fad_python": null,
+  "out_dir": "<DRUMTOGRID_ROOT>/paper_results/native_subspace_eval_direct",
+  "runs": [
+    {
+      "direct_eval_dir": "<DRUMTOGRID_ROOT>/paper_results/native_subspace_eval_direct/direct_audio_eval/dac_native_25steps",
+      "direct_summary": {
+        "audio_l1_mean": 0.05529459375582863,
+        "audio_l1_median": 0.04331355541944504,
+        "cache_root": "<DRUMTOGRID_ROOT>/cache_4beats_dac44q9_dacsub72_bpmgeom_duration_v1",
+        "metric_basis": "export_peak_normalized_audio",
+        "mrstft_logmag_l1_mean": 0.1063891123696534,
+        "mrstft_logmag_l1_median": 0.0980447381734848,
+        "num_examples": 1733,
+        "out_dir": "<DRUMTOGRID_ROOT>/paper_results/native_subspace_eval_direct/direct_audio_eval/dac_native_25steps",
+        "predictions_dir": "<DRUMTOGRID_ROOT>/runs_dac_native/dac_25steps/test_set_predictions",
+        "resolved_device": "cuda:1",
+        "sample_rate": 44100,
+        "split": "test"
+      },
+      "model_name": "dac_native_25steps",
+      "predictions_dir": "<DRUMTOGRID_ROOT>/runs_dac_native/dac_25steps/test_set_predictions",
+      "train_dir": null
+    }
+  ],
+  "split": "test",
+  "train_root": null
+}

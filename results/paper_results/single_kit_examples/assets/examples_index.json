@@ -1,0 +1,170 @@
+{
+  "checkpoint": "runs/runs_dac_ce/dac_25steps/best_diffusion.pt",
+  "epoch": 146,
+  "num_steps": 25,
+  "sample_rate": 44100,
+  "guidance_scale": 1.0,
+  "seed": 1234,
+  "examples": [
+    {
+      "exid": "ex01",
+      "source_id": "drummer1/session1/126",
+      "beat_index": 12,
+      "beat_index_end": 15,
+      "bpm": 123.71,
+      "source_bpm": 125.0,
+      "duration_sec": 1.94,
+      "cache_item": "000427.pt",
+      "n_onsets": 24,
+      "families": [
+        "Kick",
+        "Snare",
+        "Hi-hat"
+      ],
+      "target_num_frames": 167,
+      "has_source": true,
+      "audio": {
+        "generated": "ex01_generated.wav",
+        "target": "ex01_target.wav",
+        "regressor": "ex01_regressor.wav"
+      },
+      "grid_png": "ex01_grid.png",
+      "latent_png": "ex01_latent.png"
+    },
+    {
+      "exid": "ex02",
+      "source_id": "drummer1/session2/62",
+      "beat_index": 12,
+      "beat_index_end": 15,
+      "bpm": 145.45,
+      "source_bpm": 144.0,
+      "duration_sec": 1.65,
+      "cache_item": "002820.pt",
+      "n_onsets": 10,
+      "families": [
+        "Kick",
+        "Snare",
+        "Tom flr",
+        "Hi-hat"
+      ],
+      "target_num_frames": 142,
+      "has_source": true,
+      "audio": {
+        "generated": "ex02_generated.wav",
+        "target": "ex02_target.wav",
+        "regressor": "ex02_regressor.wav"
+      },
+      "grid_png": "ex02_grid.png",
+      "latent_png": "ex02_latent.png"
+    },
+    {
+      "exid": "ex03",
+      "source_id": "drummer3/session2/25",
+      "beat_index": 12,
+      "beat_index_end": 15,
+      "bpm": 93.02,
+      "source_bpm": 92.0,
+      "duration_sec": 2.58,
+      "cache_item": "005551.pt",
+      "n_onsets": 10,
+      "families": [
+        "Kick",
+        "Snare",
+        "Hi-hat"
+      ],
+      "target_num_frames": 222,
+      "has_source": true,
+      "audio": {
+        "generated": "ex03_generated.wav",
+        "target": "ex03_target.wav",
+        "regressor": "ex03_regressor.wav"
+      },
+      "grid_png": "ex03_grid.png",
+      "latent_png": "ex03_latent.png"
+    },
+    {
+      "exid": "ex04",
+      "source_id": "drummer7/session2/15",
+      "beat_index": 200,
+      "beat_index_end": 203,
+      "bpm": 117.65,
+      "source_bpm": 118.0,
+      "duration_sec": 2.04,
+      "cache_item": "010572.pt",
+      "n_onsets": 22,
+      "families": [
+        "Kick",
+        "Snare",
+        "Tom mid",
+        "Tom flr",
+        "Hi-hat",
+        "Crash"
+      ],
+      "target_num_frames": 176,
+      "has_source": true,
+      "audio": {
+        "generated": "ex04_generated.wav",
+        "target": "ex04_target.wav",
+        "regressor": "ex04_regressor.wav"
+      },
+      "grid_png": "ex04_grid.png",
+      "latent_png": "ex04_latent.png"
+    },
+    {
+      "exid": "ex05",
+      "source_id": "drummer5/session1/11",
+      "beat_index": 236,
+      "beat_index_end": 239,
+      "bpm": 94.86,
+      "source_bpm": 96.0,
+      "duration_sec": 2.53,
+      "cache_item": "006324.pt",
+      "n_onsets": 24,
+      "families": [
+        "Kick",
+        "Snare",
+        "Tom hi",
+        "Tom flr",
+        "Hi-hat",
+        "Crash"
+      ],
+      "target_num_frames": 218,
+      "has_source": true,
+      "audio": {
+        "generated": "ex05_generated.wav",
+        "target": "ex05_target.wav",
+        "regressor": "ex05_regressor.wav"
+      },
+      "grid_png": "ex05_grid.png",
+      "latent_png": "ex05_latent.png"
+    },
+    {
+      "exid": "ex06",
+      "source_id": "drummer1/session3/13",
+      "beat_index": 576,
+      "beat_index_end": 579,
+      "bpm": 115.38,
+      "source_bpm": 115.0,
+      "duration_sec": 2.08,
+      "cache_item": "003656.pt",
+      "n_onsets": 25,
+      "families": [
+        "Kick",
+        "Snare",
+        "Tom hi",
+        "Tom flr",
+        "Hi-hat",
+        "Crash"
+      ],
+      "target_num_frames": 179,
+      "has_source": true,
+      "audio": {
+        "generated": "ex06_generated.wav",
+        "target": "ex06_target.wav",
+        "regressor": "ex06_regressor.wav"
+      },
+      "grid_png": "ex06_grid.png",
+      "latent_png": "ex06_latent.png"
+    }
+  ]
+}

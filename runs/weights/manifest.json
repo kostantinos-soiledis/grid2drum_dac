@@ -1,0 +1,56 @@
+{
+  "schema_version": 2,
+  "packaging": "curated-local",
+  "files": [
+    {
+      "path": "mini_cache/config.json",
+      "size_hint": "873 B",
+      "role": "Derived cache configuration"
+    },
+    {
+      "path": "mini_cache/pca_basis.pt",
+      "size_hint": "865 KiB",
+      "role": "Target PCA basis"
+    },
+    {
+      "path": "mini_cache/target_stats.pt",
+      "size_hint": "2.4 KiB",
+      "role": "Target normalization statistics"
+    },
+    {
+      "path": "sketch_expander_dac44_native_v5/best_sketch_expander.pt",
+      "size_hint": "37 MiB",
+      "role": "Sketch-to-conditioning checkpoint"
+    },
+    {
+      "path": "runs_dac/dac_25steps/best_diffusion.pt",
+      "size_hint": "352 MiB",
+      "role": "Plain PCA diffusion checkpoint, 25 steps"
+    },
+    {
+      "path": "runs_dac_ce/dac_25steps/best_diffusion.pt",
+      "size_hint": "352 MiB",
+      "role": "RVQ-CE PCA diffusion checkpoint, 25 steps"
+    },
+    {
+      "path": "runs_direct/direct_pca_d1024_l6_seed1234/best_direct.pt",
+      "size_hint": "876 MiB",
+      "role": "Direct PCA regressor checkpoint (baseline)"
+    },
+    {
+      "path": "third_party/dac_44khz/config.json",
+      "size_hint": "Model config",
+      "role": "Local DAC decoder configuration"
+    },
+    {
+      "path": "third_party/dac_44khz/preprocessor_config.json",
+      "size_hint": "Preprocessor config",
+      "role": "Local DAC decoder preprocessing metadata"
+    },
+    {
+      "path": "third_party/dac_44khz/model.safetensors",
+      "size_hint": "DAC decoder weights",
+      "role": "Local DAC decoder weights"
+    }
+  ]
+}

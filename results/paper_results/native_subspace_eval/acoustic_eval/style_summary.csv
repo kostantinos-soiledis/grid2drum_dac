@@ -1,0 +1,2 @@
+model,style,mel_mae_db,onset_flux_cosine,band_balance_l1,num_examples
+dac_native_25steps,,5.643560075099525,0.8479720768647367,0.03590283457188572,1733

@@ -1,0 +1,31 @@
+{
+  "architectures": [
+    "DacModel"
+  ],
+  "codebook_dim": 8,
+  "codebook_loss_weight": 1.0,
+  "codebook_size": 1024,
+  "commitment_loss_weight": 0.25,
+  "decoder_hidden_size": 1536,
+  "downsampling_ratios": [
+    2,
+    4,
+    8,
+    8
+  ],
+  "encoder_hidden_size": 64,
+  "hidden_size": 1024,
+  "hop_length": 512,
+  "model_type": "dac",
+  "n_codebooks": 9,
+  "quantizer_dropout": 0.0,
+  "sampling_rate": 44100,
+  "torch_dtype": "float32",
+  "transformers_version": "4.42.0.dev0",
+  "upsampling_ratios": [
+    8,
+    8,
+    4,
+    2
+  ]
+}

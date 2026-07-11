@@ -1,0 +1,113 @@
+# Inference Summary
+
+```
+           metric                   best_model             challenger_model oriented_delta oriented_ci_low oriented_ci_high  p_adj significant
+     Mel MAE (dB)           source_code_decode        diffusion_pca_12steps         5.6574          5.5305           5.7949 0.0060         yes
+     Mel MAE (dB)           source_code_decode        diffusion_pca_25steps         5.5896          5.4588           5.7382 0.0060         yes
+     Mel MAE (dB)           source_code_decode        diffusion_pca_50steps         5.6099          5.4906           5.7401 0.0060         yes
+     Mel MAE (dB)           source_code_decode         diffusion_pca_6steps         6.2904          6.1696           6.4172 0.0060         yes
+     Mel MAE (dB)           source_code_decode diffusion_pca_rvq_ce_12steps         5.2974          5.1910           5.4077 0.0060         yes
+     Mel MAE (dB)           source_code_decode diffusion_pca_rvq_ce_25steps         5.3715          5.2599           5.5007 0.0060         yes
+     Mel MAE (dB)           source_code_decode  diffusion_pca_rvq_ce_6steps         5.3733          5.2673           5.4854 0.0060         yes
+     Mel MAE (dB)           source_code_decode direct_pca_d1024_l6_seed1234        12.9395         12.7888          13.0910 0.0060         yes
+     Mel MAE (dB)           source_code_decode                  grid_render        19.1709         18.8489          19.4808 0.0060         yes
+     Mel MAE (dB)           source_code_decode            symbolic_nn_train        17.4474         17.0751          17.8512 0.0060         yes
+     Mel MAE (dB)           source_code_decode             target_dac_recon         0.0000          0.0000           0.0000 1.0000          no
+     Mel MAE (dB)           source_code_decode             target_pca_recon         0.0000         -0.0003           0.0002 1.0000          no
+   Broad Flux Cos             target_pca_recon        diffusion_pca_12steps         0.1496          0.1438           0.1554 0.0060         yes
+   Broad Flux Cos             target_pca_recon        diffusion_pca_25steps         0.1518          0.1459           0.1578 0.0060         yes
+   Broad Flux Cos             target_pca_recon        diffusion_pca_50steps         0.1602          0.1531           0.1677 0.0060         yes
+   Broad Flux Cos             target_pca_recon         diffusion_pca_6steps         0.1561          0.1501           0.1625 0.0060         yes
+   Broad Flux Cos             target_pca_recon diffusion_pca_rvq_ce_12steps         0.1357          0.1294           0.1423 0.0060         yes
+   Broad Flux Cos             target_pca_recon diffusion_pca_rvq_ce_25steps         0.1365          0.1305           0.1426 0.0060         yes
+   Broad Flux Cos             target_pca_recon  diffusion_pca_rvq_ce_6steps         0.1332          0.1268           0.1395 0.0060         yes
+   Broad Flux Cos             target_pca_recon direct_pca_d1024_l6_seed1234         0.1637          0.1576           0.1700 0.0060         yes
+   Broad Flux Cos             target_pca_recon                  grid_render         0.2364          0.2300           0.2428 0.0060         yes
+   Broad Flux Cos             target_pca_recon           source_code_decode         0.0000         -0.0000           0.0000 1.0000          no
+   Broad Flux Cos             target_pca_recon            symbolic_nn_train         0.6696          0.6624           0.6767 0.0060         yes
+   Broad Flux Cos             target_pca_recon             target_dac_recon         0.0000         -0.0000           0.0000 1.0000          no
+     Low Flux Cos             target_pca_recon        diffusion_pca_12steps         0.2966          0.2887           0.3044 0.0060         yes
+     Low Flux Cos             target_pca_recon        diffusion_pca_25steps         0.2909          0.2827           0.2991 0.0060         yes
+     Low Flux Cos             target_pca_recon        diffusion_pca_50steps         0.3058          0.2963           0.3155 0.0060         yes
+     Low Flux Cos             target_pca_recon         diffusion_pca_6steps         0.3153          0.3071           0.3233 0.0060         yes
+     Low Flux Cos             target_pca_recon diffusion_pca_rvq_ce_12steps         0.2607          0.2517           0.2702 0.0060         yes
+     Low Flux Cos             target_pca_recon diffusion_pca_rvq_ce_25steps         0.2610          0.2525           0.2700 0.0060         yes
+     Low Flux Cos             target_pca_recon  diffusion_pca_rvq_ce_6steps         0.2562          0.2470           0.2655 0.0060         yes
+     Low Flux Cos             target_pca_recon direct_pca_d1024_l6_seed1234         0.3381          0.3281           0.3484 0.0060         yes
+     Low Flux Cos             target_pca_recon                  grid_render         0.3533          0.3463           0.3608 0.0060         yes
+     Low Flux Cos             target_pca_recon           source_code_decode         0.0000         -0.0000           0.0000 1.0000          no
+     Low Flux Cos             target_pca_recon            symbolic_nn_train         0.7792          0.7706           0.7871 0.0060         yes
+     Low Flux Cos             target_pca_recon             target_dac_recon         0.0000         -0.0000           0.0000 1.0000          no
+     Mid Flux Cos           source_code_decode        diffusion_pca_12steps         0.1927          0.1846           0.2006 0.0060         yes
+     Mid Flux Cos           source_code_decode        diffusion_pca_25steps         0.1910          0.1827           0.1990 0.0060         yes
+     Mid Flux Cos           source_code_decode        diffusion_pca_50steps         0.2068          0.1967           0.2164 0.0060         yes
+     Mid Flux Cos           source_code_decode         diffusion_pca_6steps         0.2074          0.1985           0.2168 0.0060         yes
+     Mid Flux Cos           source_code_decode diffusion_pca_rvq_ce_12steps         0.1850          0.1763           0.1940 0.0060         yes
+     Mid Flux Cos           source_code_decode diffusion_pca_rvq_ce_25steps         0.1749          0.1665           0.1833 0.0060         yes
+     Mid Flux Cos           source_code_decode  diffusion_pca_rvq_ce_6steps         0.1814          0.1722           0.1903 0.0060         yes
+     Mid Flux Cos           source_code_decode direct_pca_d1024_l6_seed1234         0.1926          0.1843           0.2011 0.0060         yes
+     Mid Flux Cos           source_code_decode                  grid_render         0.3061          0.2979           0.3145 0.0060         yes
+     Mid Flux Cos           source_code_decode            symbolic_nn_train         0.8259          0.8188           0.8327 0.0060         yes
+     Mid Flux Cos           source_code_decode             target_dac_recon         0.0000         -0.0000           0.0000 1.0000          no
+     Mid Flux Cos           source_code_decode             target_pca_recon         0.0000         -0.0000           0.0000 0.9915          no
+    High Flux Cos             target_pca_recon        diffusion_pca_12steps         0.1440          0.1386           0.1498 0.0060         yes
+    High Flux Cos             target_pca_recon        diffusion_pca_25steps         0.1488          0.1431           0.1548 0.0060         yes
+    High Flux Cos             target_pca_recon        diffusion_pca_50steps         0.1583          0.1516           0.1650 0.0060         yes
+    High Flux Cos             target_pca_recon         diffusion_pca_6steps         0.1500          0.1441           0.1561 0.0060         yes
+    High Flux Cos             target_pca_recon diffusion_pca_rvq_ce_12steps         0.1328          0.1268           0.1391 0.0060         yes
+    High Flux Cos             target_pca_recon diffusion_pca_rvq_ce_25steps         0.1382          0.1325           0.1440 0.0060         yes
+    High Flux Cos             target_pca_recon  diffusion_pca_rvq_ce_6steps         0.1311          0.1250           0.1370 0.0060         yes
+    High Flux Cos             target_pca_recon direct_pca_d1024_l6_seed1234         0.1998          0.1932           0.2062 0.0060         yes
+    High Flux Cos             target_pca_recon                  grid_render         0.2591          0.2520           0.2666 0.0060         yes
+    High Flux Cos             target_pca_recon           source_code_decode         0.0000         -0.0000           0.0000 1.0000          no
+    High Flux Cos             target_pca_recon            symbolic_nn_train         0.6361          0.6280           0.6440 0.0060         yes
+    High Flux Cos             target_pca_recon             target_dac_recon         0.0000         -0.0000           0.0000 1.0000          no
+  Band Balance L1           source_code_decode        diffusion_pca_12steps         0.0353          0.0329           0.0381 0.0060         yes
+  Band Balance L1           source_code_decode        diffusion_pca_25steps         0.0335          0.0311           0.0360 0.0060         yes
+  Band Balance L1           source_code_decode        diffusion_pca_50steps         0.0385          0.0354           0.0417 0.0060         yes
+  Band Balance L1           source_code_decode         diffusion_pca_6steps         0.0413          0.0383           0.0446 0.0060         yes
+  Band Balance L1           source_code_decode diffusion_pca_rvq_ce_12steps         0.0329          0.0305           0.0357 0.0060         yes
+  Band Balance L1           source_code_decode diffusion_pca_rvq_ce_25steps         0.0323          0.0298           0.0352 0.0060         yes
+  Band Balance L1           source_code_decode  diffusion_pca_rvq_ce_6steps         0.0393          0.0363           0.0425 0.0060         yes
+  Band Balance L1           source_code_decode direct_pca_d1024_l6_seed1234         0.1690          0.1577           0.1809 0.0060         yes
+  Band Balance L1           source_code_decode                  grid_render         0.0817          0.0765           0.0874 0.0060         yes
+  Band Balance L1           source_code_decode            symbolic_nn_train         0.1002          0.0941           0.1068 0.0060         yes
+  Band Balance L1           source_code_decode             target_dac_recon         0.0000          0.0000           0.0000 1.0000          no
+  Band Balance L1           source_code_decode             target_pca_recon         0.0000         -0.0000           0.0000 0.8056          no
+Centroid MAE (Hz)             target_pca_recon        diffusion_pca_12steps       397.7040        377.3058         418.2343 0.0060         yes
+Centroid MAE (Hz)             target_pca_recon        diffusion_pca_25steps       382.9181        362.1283         404.6112 0.0060         yes
+Centroid MAE (Hz)             target_pca_recon        diffusion_pca_50steps       386.7241        365.0301         408.0359 0.0060         yes
+Centroid MAE (Hz)             target_pca_recon         diffusion_pca_6steps       535.3262        509.3012         561.1025 0.0060         yes
+Centroid MAE (Hz)             target_pca_recon diffusion_pca_rvq_ce_12steps       341.6897        323.3590         360.1830 0.0060         yes
+Centroid MAE (Hz)             target_pca_recon diffusion_pca_rvq_ce_25steps       353.4860        334.4278         373.2512 0.0060         yes
+Centroid MAE (Hz)             target_pca_recon  diffusion_pca_rvq_ce_6steps       397.1390        376.0220         418.0234 0.0060         yes
+Centroid MAE (Hz)             target_pca_recon direct_pca_d1024_l6_seed1234      1711.9268       1674.6120        1749.8775 0.0060         yes
+Centroid MAE (Hz)             target_pca_recon                  grid_render      2107.9064       2046.8338        2168.0572 0.0060         yes
+Centroid MAE (Hz)             target_pca_recon           source_code_decode         0.0066         -0.0119           0.0251 1.0000          no
+Centroid MAE (Hz)             target_pca_recon            symbolic_nn_train      1110.8663       1062.7348        1158.3190 0.0060         yes
+Centroid MAE (Hz)             target_pca_recon             target_dac_recon         0.0066         -0.0119           0.0251 1.0000          no
+     RMS MAE (dB) direct_pca_d1024_l6_seed1234        diffusion_pca_12steps         1.2261          0.9386           1.5142 0.0060         yes
+     RMS MAE (dB) direct_pca_d1024_l6_seed1234        diffusion_pca_25steps         1.4321          1.1478           1.7147 0.0060         yes
+     RMS MAE (dB) direct_pca_d1024_l6_seed1234        diffusion_pca_50steps         1.0726          0.7996           1.3602 0.0060         yes
+     RMS MAE (dB) direct_pca_d1024_l6_seed1234         diffusion_pca_6steps         1.2170          0.9322           1.4967 0.0060         yes
+     RMS MAE (dB) direct_pca_d1024_l6_seed1234 diffusion_pca_rvq_ce_12steps         1.2224          0.9417           1.5141 0.0060         yes
+     RMS MAE (dB) direct_pca_d1024_l6_seed1234 diffusion_pca_rvq_ce_25steps         0.8901          0.6065           1.1619 0.0060         yes
+     RMS MAE (dB) direct_pca_d1024_l6_seed1234  diffusion_pca_rvq_ce_6steps         1.2382          0.9628           1.5237 0.0060         yes
+     RMS MAE (dB) direct_pca_d1024_l6_seed1234                  grid_render         4.2946          4.0093           4.5755 0.0060         yes
+     RMS MAE (dB) direct_pca_d1024_l6_seed1234           source_code_decode         1.7566          1.4734           2.0399 0.0060         yes
+     RMS MAE (dB) direct_pca_d1024_l6_seed1234            symbolic_nn_train         2.1146          1.7940           2.4479 0.0060         yes
+     RMS MAE (dB) direct_pca_d1024_l6_seed1234             target_dac_recon         1.7566          1.4734           2.0399 0.0060         yes
+     RMS MAE (dB) direct_pca_d1024_l6_seed1234             target_pca_recon         1.7566          1.4734           2.0400 0.0060         yes
+   Crest MAE (dB)           source_code_decode        diffusion_pca_12steps         1.6186          1.5582           1.6836 0.0060         yes
+   Crest MAE (dB)           source_code_decode        diffusion_pca_25steps         1.5981          1.5378           1.6599 0.0060         yes
+   Crest MAE (dB)           source_code_decode        diffusion_pca_50steps         1.7213          1.6510           1.7955 0.0060         yes
+   Crest MAE (dB)           source_code_decode         diffusion_pca_6steps         1.6882          1.6216           1.7555 0.0060         yes
+   Crest MAE (dB)           source_code_decode diffusion_pca_rvq_ce_12steps         1.5875          1.5249           1.6530 0.0060         yes
+   Crest MAE (dB)           source_code_decode diffusion_pca_rvq_ce_25steps         1.7084          1.6419           1.7775 0.0060         yes
+   Crest MAE (dB)           source_code_decode  diffusion_pca_rvq_ce_6steps         1.6058          1.5450           1.6730 0.0060         yes
+   Crest MAE (dB)           source_code_decode direct_pca_d1024_l6_seed1234         8.3018          8.0508           8.5489 0.0060         yes
+   Crest MAE (dB)           source_code_decode                  grid_render         2.8012          2.7026           2.9034 0.0060         yes
+   Crest MAE (dB)           source_code_decode            symbolic_nn_train         2.3840          2.2949           2.4720 0.0060         yes
+   Crest MAE (dB)           source_code_decode             target_dac_recon         0.0000          0.0000           0.0000 1.0000          no
+   Crest MAE (dB)           source_code_decode             target_pca_recon         0.0000         -0.0000           0.0001 1.0000          no
+```

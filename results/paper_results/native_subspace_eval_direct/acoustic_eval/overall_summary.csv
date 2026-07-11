@@ -1,0 +1,2 @@
+model,num_examples,mel_mae_db,onset_flux_cosine,low_flux_cosine,mid_flux_cosine,high_flux_cosine,band_balance_l1,centroid_mae_hz,rms_mae_db,rms_norm_mae_db,crest_mae_db,rtf_end_to_end,audio_sec_per_sec,total_train_wall_sec,time_to_best_checkpoint_sec,peak_gpu_mem_allocated_mb
+dac_native_25steps,1733,5.6452909758238174,0.8481563176752764,0.6964704511502228,0.790190496776948,0.8543837513039156,0.035848665352344065,408.54139011909143,6.68324896203591,1.592987832724984,1.5927490034326213,0.04673959399058071,21.395136641570463,,0.0,

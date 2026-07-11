@@ -1,0 +1,38 @@
+\section{Results and Analysis}
+Table~\ref{tab:auto_main_results} is generated directly from the normalized run manifest. It should be interpreted as an automatic-metric summary: distributional quality, paired spectral/onset fidelity, direct reconstruction, and runtime are separate axes.
+
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llrrrrrrrr}
+\toprule
+System & Type & Clips & $\mathrm{FAD}_{\infty}$ $\downarrow$ & $\mathrm{FAD}\text{-}R^2$ $\uparrow$ & Mel $\downarrow$ & Flux $\uparrow$ & MRSTFT $\downarrow$ & Audio $L_1$ $\downarrow$ & RTF $\downarrow$ \\
+\midrule
+Target DAC reconstruction & reconstruction\_ceiling & 1733 & 0.016 & 0.848 & 0.10 & 0.999 & 0.001 & 0.0002 & 0.015 \\
+Target PCA reconstruction & reconstruction\_ceiling & 1733 & 0.016 & 0.847 & 0.10 & 0.999 & 0.001 & 0.0002 & 0.015 \\
+Symbolic grid render & baseline & 1733 & 0.551 & 0.147 & 19.27 & 0.763 & 0.264 & 0.0859 & 0.004 \\
+Source-code decode & baseline & 1733 & 0.016 & 0.848 & 0.10 & 0.999 & 0.001 & 0.0002 & 0.015 \\
+Symbolic NN retrieval & baseline & 1733 & 0.025 & 0.846 & 17.54 & 0.330 & 0.208 & 0.0671 & 0.018 \\
+Direct PCA regressor & direct\_pca & 1733 & 0.355 & 0.169 & 13.04 & 0.836 & 0.136 & 0.0451 & 0.021 \\
+Diffusion PCA 6 steps & diffusion\_pca & 1733 & 0.023 & 0.851 & 6.39 & 0.843 & 0.108 & 0.0534 & 0.060 \\
+Diffusion PCA 12 steps & diffusion\_pca & 1733 & 0.021 & 0.835 & 5.75 & 0.850 & 0.106 & 0.0533 & 0.065 \\
+Diffusion PCA 25 steps & diffusion\_pca & 1733 & 0.019 & 0.891 & 5.69 & 0.848 & 0.106 & 0.0536 & 0.077 \\
+Diffusion PCA 50 steps & diffusion\_pca & 1733 & 0.024 & 0.744 & 5.71 & 0.839 & 0.109 & 0.0544 & 0.107 \\
+Diffusion PCA+RVQ-CE 6 steps & diffusion\_pca\_rvq\_ce & 1733 & 0.022 & 0.830 & 5.47 & 0.866 & 0.105 & 0.0509 & 0.027 \\
+Diffusion PCA+RVQ-CE 12 steps & diffusion\_pca\_rvq\_ce & 1733 & 0.020 & 0.845 & 5.39 & 0.864 & 0.106 & 0.0515 & 0.046 \\
+Diffusion PCA+RVQ-CE 25 steps & diffusion\_pca\_rvq\_ce & 1733 & 0.020 & 0.848 & 5.47 & 0.863 & 0.104 & 0.0512 & 0.072 \\
+\bottomrule
+\end{tabular}
+\caption{Automatically aggregated test-set metrics. Missing cells indicate that the corresponding evaluation artifact was not present when the table was generated. $\mathrm{FAD}_{\infty}$ is distributional; $\mathrm{FAD}\text{-}R^2$ is the extrapolation-fit diagnostic; the paired metrics quantify reconstruction and symbolic-control-related structure.}
+\label{tab:auto_main_results}
+\end{table*}
+
+\paragraph{Main observations.}
+The current artifacts support four controlled observations.
+First, Diffusion PCA+RVQ-CE 12 steps gives the lowest learned-system mel error (5.39 dB), a 58.6\% relative reduction from the direct PCA regressor (13.04 dB).
+Second, Diffusion PCA+RVQ-CE 6 steps gives the strongest onset-flux agreement among learned systems (0.866), supporting the auxiliary RVQ-CE term as codec-structure supervision rather than a discrete-token generator.
+Third, Diffusion PCA+RVQ-CE 25 steps gives the best learned-system MRSTFT (0.104), a 23.6\% relative reduction from direct PCA regression.
+Fourth, phase-sensitive waveform $L_1$ is the main counterexample: Direct PCA regressor has the lowest learned-system waveform $L_1$ (0.0451), so the diffusion results should be interpreted as spectral/transient improvements rather than universal samplewise reconstruction dominance.
+All completed diffusion rows are faster than real time in the stored run; RTF differences should be interpreted as implementation/runtime measurements rather than architectural consequences of RVQ-CE.
+The best completed diffusion $\mathrm{FAD}_{\infty}$ row is Diffusion PCA 25 steps (0.019).

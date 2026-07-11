@@ -1,0 +1,32 @@
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{llrrrrr}
+\toprule
+Model & Test-time condition & MRSTFT $\downarrow$ & Audio $L_1$ $\downarrow$ & Proxy precision $\uparrow$ & Proxy recall $\uparrow$ & Proxy F1 $\uparrow$ \\
+\midrule
+Direct & Intact & 0.136 & 0.045 & 0.326 & 0.822 & 0.436 \\
+ & Zeroed & 0.465 & 0.097 & 0.135 & 0.482 & 0.197 \\
+ & Shuffled & 0.187 & 0.051 & 0.260 & 0.648 & 0.346 \\
+ & Half-window shift & 0.183 & 0.052 & 0.271 & 0.684 & 0.361 \\
+\midrule
+RVQ-CE, 6 steps & Intact & 0.106 & 0.051 & 0.257 & 0.908 & 0.373 \\
+ & Zeroed & 0.210 & 0.586 & 0.173 & 0.164 & 0.147 \\
+ & Shuffled & 0.176 & 0.064 & 0.222 & 0.785 & 0.321 \\
+ & Half-window shift & 0.180 & 0.065 & 0.230 & 0.798 & 0.332 \\
+\midrule
+RVQ-CE, 12 steps & Intact & 0.106 & 0.051 & 0.255 & 0.907 & 0.370 \\
+ & Zeroed & 0.298 & 0.146 & 0.137 & 0.684 & 0.219 \\
+ & Shuffled & 0.178 & 0.064 & 0.221 & 0.789 & 0.320 \\
+ & Half-window shift & 0.182 & 0.065 & 0.228 & 0.807 & 0.330 \\
+\midrule
+RVQ-CE, 25 steps & Intact & 0.104 & 0.051 & 0.255 & 0.906 & 0.368 \\
+ & Zeroed & 0.210 & 0.592 & 0.173 & 0.164 & 0.147 \\
+ & Shuffled & 0.174 & 0.064 & 0.220 & 0.786 & 0.319 \\
+ & Half-window shift & 0.178 & 0.064 & 0.228 & 0.804 & 0.329 \\
+\bottomrule
+\end{tabular}
+\caption{Complete test-time conditioning sensitivity results. Zeroed conditioning removes numeric grid values, articulation IDs, and family-onset fields; shuffled conditioning cyclically reassigns conditioning examples within each evaluation batch; the phase condition circularly shifts each valid symbolic window by half its length. Targets remain unchanged.}
+\label{tab:frontend_inference_ablation_full}
+\end{table*}

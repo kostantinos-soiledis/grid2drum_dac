@@ -1,0 +1,20 @@
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{llrrrrr}
+\toprule
+Model & Training condition / frontend & Params (M) & MRSTFT $\downarrow$ & Audio $L_1$ $\downarrow$ & Proxy F1 $\uparrow$ & RTF $\downarrow$ \\
+\midrule
+Direct PCA & No conditioning & 76.5 & 0.308 & 0.069 & 0.348 & 0.024 \\
+ & Linear, radius 0 & 75.7 & 0.148 & 0.048 & 0.438 & 0.018 \\
+ & Linear, radius 22 & 75.9 & 0.138 & 0.046 & \textbf{0.442} & \textbf{0.018} \\
+ & Hybrid multiscale & 76.5 & \textbf{0.136} & \textbf{0.045} & 0.436 & 0.022 \\
+\midrule
+RVQ-CE diffusion, 25 steps & No conditioning & 91.9 & 0.272 & 0.069 & 0.242 & 0.052 \\
+ & Hybrid multiscale & 91.9 & \textbf{0.107} & \textbf{0.053} & \textbf{0.368} & \textbf{0.052} \\
+\bottomrule
+\end{tabular}
+\caption{Training-time frontend ablations on the same 1,733 test clips. All newly trained variants use a 75-epoch budget and validation-loss checkpoint selection. The direct hybrid row reuses the main-run checkpoint selected at epoch 14, which lies within that budget. Proxy F1 is produced by the fixed heuristic band-flux onset detector and is not a perceptual score. Bold marks the best value within each model family.}
+\label{tab:frontend_training_ablation}
+\end{table*}
