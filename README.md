@@ -52,11 +52,15 @@ This writes `/tmp/drumtogrid_smoke_audio/output.wav`.
 ### Interactive listener
 
 ```bash
-python code/demo/app.py
+python code/demo/app.py                    # CPU
+APP_DEVICE=cuda:0 python code/demo/app.py  # GPU
 ```
 
 Launches the Gradio UI; it expects the runtime files under `runs/` (present
-after a full LFS clone).
+after a full LFS clone). The main panel exposes the everyday knobs (velocity,
+beats, BPM, pattern variation, ghosts, hat openness, fill); guidance, seed,
+feel, per-instrument ghost overrides, hat density, and crashes live under
+**Advanced settings**.
 
 ## Using the repo
 

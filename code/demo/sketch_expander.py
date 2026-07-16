@@ -271,7 +271,7 @@ def _budget_caps_from_decoded_controls(
         )
         off16_hat = _cap_from_thresholds(
             hihat_density,
-            ((0.10, 0), (0.35, 1), (0.80, 2), (0.90, 4), (float("inf"), 8)),
+            ((0.10, 0), (0.30, 1), (0.50, 2), (0.70, 4), (0.88, 6), (float("inf"), 8)),
         )
         open_hat = _cap_from_thresholds(
             hihat_openness,
@@ -1310,12 +1310,14 @@ def _min_probability_for_budget_group(group_name: str, decoded_controls: Mapping
         "ride": 0.34,
         "tom_crash": 0.34,
     }.get(str(group_name), 0.0)
-    if str(group_name) in {"kick_ghost", "snare_ghost", "snare_roll_drag", "snare_roll_run"} and ghost_density >= 0.85:
-        base -= 0.04
-    elif str(group_name) == "off16_hat" and hihat_density >= 0.85:
-        base -= 0.04
-    elif str(group_name) in {"tom_fill", "crash", "ride", "tom_crash"} and fill_density >= 0.85:
-        base -= 0.05
+    # Relax the candidate gate smoothly as the driving control rises, so turning a
+    # knob up actually lets more ornaments through instead of the count flatlining.
+    if str(group_name) in {"kick_ghost", "snare_ghost", "snare_roll_drag", "snare_roll_run"}:
+        base -= 0.14 * max(0.0, min(1.0, (ghost_density - 0.40) / 0.60))
+    elif str(group_name) == "off16_hat":
+        base -= 0.12 * max(0.0, min(1.0, (hihat_density - 0.40) / 0.60))
+    elif str(group_name) in {"tom_fill", "crash", "ride", "tom_crash"}:
+        base -= 0.20 * max(0.0, min(1.0, (fill_density - 0.30) / 0.70))
     floor = 0.10 if str(group_name) == "kick_ghost" else 0.12
     return float(max(float(floor), min(0.45, base)))
 
@@ -1372,7 +1374,7 @@ def _budget_counts_from_logits(
         counts[str(group_name)] = int(max(0, min(int(count), int(caps.get(str(group_name), 0)))))
     if str(decoded_controls.get("version", "")) in {"v3", "v4"}:
         fill_density = float(decoded_controls.get("fill_density", 0.0))
-        if "tom_fill" in counts and fill_density >= 0.70:
+        if "tom_fill" in counts and fill_density >= 0.35:
             tom_idx = int(group_index.get("tom_fill", -1))
             tom_cap = int(caps.get("tom_fill", 0))
             confident_zero = (
@@ -1384,8 +1386,34 @@ def _budget_counts_from_logits(
                 )
             )
             if tom_idx >= 0 and tom_cap > 0 and not bool(confident_zero):
-                forced_toms = 1 if fill_density < 0.85 else (2 if fill_density < 0.95 else 3)
+                # Grow the fill smoothly across the knob instead of staying flat
+                # until 0.7: 0.35->1, 0.55->2, 0.8->3, 0.9->4, 1.0->5 toms.
+                forced_toms = _cap_from_thresholds(
+                    fill_density,
+                    ((0.55, 1), (0.75, 2), (0.90, 3), (0.97, 4), (float("inf"), 5)),
+                )
                 counts["tom_fill"] = int(max(int(counts["tom_fill"]), min(int(tom_cap), int(forced_toms))))
+        # Off-beat hats (the main "Hats" knob): make the whole range live instead
+        # of only waking up past 0.8. Force a floor that scales with the control,
+        # gated by the model being unsure about zero.
+        hihat_density = float(decoded_controls.get("hihat_density", 0.5))
+        if "off16_hat" in counts and hihat_density >= 0.30:
+            hat_idx = int(group_index.get("off16_hat", -1))
+            hat_cap = int(caps.get("off16_hat", 0))
+            confident_zero = (
+                hat_idx >= 0
+                and _budget_zero_is_confident(
+                    budget_logits,
+                    group_idx=int(hat_idx),
+                    max_count=int(max_counts[int(hat_idx)]),
+                )
+            )
+            if hat_idx >= 0 and hat_cap > 0 and not bool(confident_zero):
+                forced_hats = _cap_from_thresholds(
+                    hihat_density,
+                    ((0.55, 1), (0.72, 2), (0.85, 4), (float("inf"), 6)),
+                )
+                counts["off16_hat"] = int(max(int(counts["off16_hat"]), min(int(hat_cap), int(forced_hats))))
         ghost_density = float(decoded_controls.get("ghost_density", 0.0))
         kick_ghost_density = float(decoded_controls.get("kick_ghost_density", max(0.0, (ghost_density - 0.25) / 0.75)))
         if "kick_ghost" in counts and kick_ghost_density >= 0.55:

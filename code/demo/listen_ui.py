@@ -143,6 +143,9 @@ DEFAULT_SKETCH_CHECKPOINT = _default_sketch_checkpoint()
 MIN_UI_GUIDANCE_SCALE = 1.0
 MAX_UI_GUIDANCE_SCALE = 5.0
 DEFAULT_UI_GUIDANCE_SCALE = DEFAULT_INFERENCE_GUIDANCE_SCALE
+# Guidance lives in the Advanced section; default a touch above training (1.0) so
+# the first listen follows the sketch a little harder without inviting artifacts.
+DEFAULT_ADVANCED_GUIDANCE_SCALE = 1.5
 DEFAULT_DIFFUSION_TRAIN_DIR = _default_diffusion_train_dir()
 DEFAULT_CACHE_ROOT = RUNS_ROOT / "mini_cache"
 DEFAULT_OUT_DIR = REPO_ROOT / ".listen_ui_runs"
@@ -539,16 +542,31 @@ def _controls_tensor(
     fill_accent_shape = fill_shape_s if fill_shape_s in set(FILL_ACCENT_SHAPE_VALUES) else "peak_end"
     feel_style_s = str(feel_style or "straight")
     swing = {"pushed": -0.35, "laid_back": 0.10, "swing": 0.35}.get(feel_style_s, 0.0) * float(feel_amount)
+    # The main "Ghosts" knob is the master ghost intensity and drives BOTH snare
+    # and kick ghosts. The dedicated advanced knobs are "Auto" (encoded as any
+    # value < 0) by default and only take over their family when moved to >= 0.
+    master_ghost = float(max(0.0, min(1.0, float(ghost_density))))
+    snare_ghost_eff = (
+        master_ghost
+        if float(snare_ghost_density) < 0.0
+        else float(max(0.0, min(1.0, float(snare_ghost_density))))
+    )
+    kick_ghost_eff = (
+        float(max(0.0, min(1.0, (master_ghost - 0.30) / 0.70)))  # kicks stay sparser than snares
+        if float(kick_ghost_density) < 0.0
+        else float(max(0.0, min(1.0, float(kick_ghost_density))))
+    )
+    snare_roll_eff = float(max(0.0, min(1.0, (snare_ghost_eff - 0.45) / 0.55)))
     return control_tensor_from_public_controls(
         {
             "feel_style": str(feel_style),
             "feel_amount": float(feel_amount),
             "swing": float(swing),
             "humanize": float(feel_amount),
-            "ghost_density": float(ghost_density),
-            "kick_ghost_density": float(kick_ghost_density),
-            "snare_ghost_density": float(snare_ghost_density),
-            "snare_roll_density": float(max(0.0, min(1.0, (float(snare_ghost_density) - 0.45) / 0.55))),
+            "ghost_density": master_ghost,
+            "kick_ghost_density": kick_ghost_eff,
+            "snare_ghost_density": snare_ghost_eff,
+            "snare_roll_density": snare_roll_eff,
             "hihat_density": float(hihat_density),
             "hihat_openness": float(hihat_openness),
             "fill_density": float(fill_density),
@@ -560,6 +578,53 @@ def _controls_tensor(
         },
         control_names=control_names,
     )
+
+
+def _inject_crash_events(
+    events: list[dict[str, Any]],
+    *,
+    crash_density: float,
+    velocity: float,
+    chunk_idx: int,
+    chunk_count: int,
+) -> list[dict[str, Any]]:
+    """Add crash cymbals directly.
+
+    The expander is trained on GMD, where crashes are rare, so it puts almost no
+    probability on the crash family (max ~0.07) and never emits one. To give the
+    user real control we inject crashes on the downbeat, where crashes musically
+    land, with a count/velocity that scales with the ``crash_density`` knob.
+    """
+    amount = float(max(0.0, min(1.0, float(crash_density))))
+    if amount <= 0.0:
+        return events
+    is_first = int(chunk_idx) == 0
+    is_last = int(chunk_idx) == int(chunk_count) - 1
+    steps: set[int] = set()
+    if is_first or amount >= 0.75 or (is_last and amount >= 0.45):
+        steps.add(0)  # crash on the phrase / bar downbeat
+    if amount >= 0.90:
+        steps.add(8)  # extra half-bar accent at the top of the range
+    if not steps:
+        return events
+    crash_velocity = float(max(0.0, min(1.0, (0.60 + 0.35 * amount) * (0.70 + 0.30 * float(velocity)))))
+    existing = {(str(e.get("family")), int(e.get("step", -1))) for e in events}
+    for step in sorted(steps):
+        if ("crash", int(step)) in existing:
+            continue
+        events.append(
+            {
+                "family": "crash",
+                "step": int(step),
+                "slot": 0,
+                "probability": 1.0,
+                "velocity": float(crash_velocity),
+                "offset": 0.0,
+                "class_id": 0,
+                "forced": True,
+            }
+        )
+    return events
 
 
 def _set_seed(seed: int) -> None:
@@ -1094,6 +1159,7 @@ class SketchDiffusionListenApp:
         hihat_openness: float,
         fill_density: float,
         fill_shape: str,
+        crash_density: float,
         seed: int,
         diffusion_checkpoint: Any,
         *,
@@ -1144,22 +1210,28 @@ class SketchDiffusionListenApp:
                     sketch_vel.unsqueeze(0).to(device=self.device),
                     controls_i.unsqueeze(0).to(device=self.device),
                 )
-            event_batches.append(
-                _decode_event_plan_variant(
-                    {key: value.detach().cpu() for key, value in outputs.items()},
-                    sketch_hits=sketch_hits,
-                    sketch_vel=sketch_vel,
-                    controls=controls_i,
-                    class_names=self.sketch_model.class_names,
-                    class_id_vocab_sizes=self.sketch_model.class_id_vocab_sizes,
-                    control_names=self.sketch_model.cfg.control_names,
-                    budget_group_names=self.sketch_model.budget_group_names,
-                    budget_max_counts=self.sketch_model.budget_max_counts,
-                    seed=seed_value,
-                    chunk_idx=int(chunk_idx),
-                    pattern_variation=float(pattern_variation),
-                )
+            chunk_events = _decode_event_plan_variant(
+                {key: value.detach().cpu() for key, value in outputs.items()},
+                sketch_hits=sketch_hits,
+                sketch_vel=sketch_vel,
+                controls=controls_i,
+                class_names=self.sketch_model.class_names,
+                class_id_vocab_sizes=self.sketch_model.class_id_vocab_sizes,
+                control_names=self.sketch_model.cfg.control_names,
+                budget_group_names=self.sketch_model.budget_group_names,
+                budget_max_counts=self.sketch_model.budget_max_counts,
+                seed=seed_value,
+                chunk_idx=int(chunk_idx),
+                pattern_variation=float(pattern_variation),
             )
+            chunk_events = _inject_crash_events(
+                chunk_events,
+                crash_density=float(crash_density),
+                velocity=float(velocity),
+                chunk_idx=int(chunk_idx),
+                chunk_count=int(chunk_count),
+            )
+            event_batches.append(chunk_events)
         resources = self._get_diffusion_resources(diffusion_checkpoint) if bool(make_audio) else None
         target_token_rate_hz = (
             float(resources.target_token_rate_hz)
@@ -1312,7 +1384,16 @@ def launch_private(demo: gr.Blocks, **kwargs: Any) -> Any:
 
 def build_ui(app: SketchDiffusionListenApp) -> gr.Blocks:
     with gr.Blocks(title="Anonymous Drum Rendering Demo", css=_LISTENER_CSS) as demo:
+        gr.Markdown(
+            "## 🥁 Grid2Drum-DAC Listener\n"
+            "Toggle steps in the **grid** to sketch a one-bar drum pattern, shape the groove with "
+            "the main controls on the right, then **Render Grid** to preview what you drew or "
+            "**Generate Audio** to hear it. The plot right under the grid shows your pattern and how "
+            "it expands into events. Finer controls — guidance, feel, per-instrument ghost/hat/crash "
+            "detail, seed, and the model's internal conditioning grid — live under **Advanced settings**."
+        )
         with gr.Row():
+            # Left: the creative canvas — the grid, with a plot of what it means right below it.
             with gr.Column(scale=3):
                 hits_df = gr.Dataframe(
                     value=_default_hits_table(),
@@ -1327,6 +1408,10 @@ def build_ui(app: SketchDiffusionListenApp) -> gr.Blocks:
                     static_columns=[0],
                     column_widths=[90, *[44] * 16],
                 )
+                sketch_plot = gr.Plot(label="Your pattern — hits, velocities and expanded events")
+            # Right: the main knobs a listener reaches for most, two per row to keep
+            # the column compact.
+            with gr.Column(scale=2):
                 with gr.Row():
                     velocity = gr.Slider(
                         0.2,
@@ -1342,9 +1427,8 @@ def build_ui(app: SketchDiffusionListenApp) -> gr.Blocks:
                         value=0.20,
                         step=0.01,
                         label="Velocity variation",
-                        info="0 even, 0.2 natural, 0.6+ very uneven repeated-hit loudness.",
+                        info="0 even, 0.2 natural, 0.6+ uneven repeated-hit loudness.",
                     )
-            with gr.Column(scale=2):
                 with gr.Row():
                     output_beats = gr.Slider(
                         DEFAULT_NUM_BEATS,
@@ -1352,32 +1436,76 @@ def build_ui(app: SketchDiffusionListenApp) -> gr.Blocks:
                         value=max(DEFAULT_NUM_BEATS, _resolve_output_beats(app.args.num_beats)),
                         step=DEFAULT_NUM_BEATS,
                         label="Output beats",
-                        info="4 is one chunk; 8-16 repeats with variation; 32 is longest.",
+                        info="4 is one chunk; 8-16 repeats; 32 is longest.",
                     )
+                    bpm = gr.Slider(
+                        60.0,
+                        190.0,
+                        value=120.0,
+                        step=1.0,
+                        label="BPM",
+                        info="60 slow, 120 mid, 190 fast; also sets length.",
+                    )
+                with gr.Row():
+                    pattern_variation = gr.Slider(
+                        0.0,
+                        1.0,
+                        value=0.20,
+                        step=0.01,
+                        label="Pattern variation",
+                        info="0 same each chunk, 0.2 subtle, 0.7+ new fills/placements.",
+                    )
+                    ghost_density = gr.Slider(
+                        0.0,
+                        1.0,
+                        value=0.35,
+                        step=0.01,
+                        label="Ghosts",
+                        info="Soft in-between hits: 0 none, 0.3 light snares, 0.8+ adds kick ghosts too.",
+                    )
+                with gr.Row():
+                    hihat_openness = gr.Slider(
+                        0.0,
+                        1.0,
+                        value=0.0,
+                        step=0.01,
+                        label="Hat openness",
+                        info="0 closed, 0.3 accents, 0.7+ open/washy hats.",
+                    )
+                    fill_density = gr.Slider(
+                        0.0,
+                        1.0,
+                        value=0.0,
+                        step=0.01,
+                        label="Fill amount",
+                        info="0 none, 0.4 pickups, 0.7+ tom runs/ride, 1 heavy fills.",
+                    )
+                diffusion_checkpoint = gr.Dropdown(
+                    choices=_labeled_ckpt_choices(app.diffusion_checkpoint_choices),
+                    value=app.default_diffusion_checkpoint,
+                    allow_custom_value=True,
+                    label="Diffusion checkpoint",
+                    interactive=True,
+                )
+        with gr.Row():
+            preview_btn = gr.Button("Render Grid", variant="secondary")
+            audio_btn = gr.Button("Generate Audio", variant="primary", interactive=not bool(app.args.grid_only))
+        with gr.Row():
+            audio_out = gr.Audio(label="Audio", type="filepath")
+            chunk_files = gr.Files(label="Chunk WAVs")
+            json_out = gr.JSON(label="Events")
+        with gr.Accordion("Advanced settings", open=False):
+            with gr.Row():
                 guidance_scale = gr.Slider(
-                        MIN_UI_GUIDANCE_SCALE,
-                        MAX_UI_GUIDANCE_SCALE,
-                        value=_resolve_guidance_scale(app.args.guidance_scale),
-                        step=0.05,
-                        label="Guidance",
-                        info="1 matches training; 2-3 follows conditioning harder; 4-5 may add noise.",
-                    )
-                pattern_variation = gr.Slider(
-                    0.0,
-                    1.0,
-                    value=0.20,
-                    step=0.01,
-                    label="Pattern variation",
-                    info="0 same sketch each chunk, 0.2 subtle, 0.7+ new fills/placements.",
+                    MIN_UI_GUIDANCE_SCALE,
+                    MAX_UI_GUIDANCE_SCALE,
+                    value=_resolve_guidance_scale(DEFAULT_ADVANCED_GUIDANCE_SCALE),
+                    step=0.05,
+                    label="Guidance",
+                    info="1 matches training; 2-3 follows conditioning harder; 4-5 may add artifacts.",
                 )
-                bpm = gr.Slider(
-                    60.0,
-                    190.0,
-                    value=120.0,
-                    step=1.0,
-                    label="BPM",
-                    info="60 slow, 120 mid, 190 fast; also changes audio length.",
-                )
+                seed = gr.Number(value=1234, precision=0, label="Seed")
+            with gr.Row():
                 feel_style = gr.Dropdown(
                     choices=list(FEEL_STYLE_VALUES),
                     value="straight",
@@ -1392,31 +1520,24 @@ def build_ui(app: SketchDiffusionListenApp) -> gr.Blocks:
                     label="Feel amount",
                     info="0 tight, 0.2-0.35 natural, 0.6+ loose timing and velocity.",
                 )
-                ghost_density = gr.Slider(
-                    0.0,
+            with gr.Row():
+                kick_ghost_density = gr.Slider(
+                    -1.0,
                     1.0,
-                    value=0.35,
+                    value=-1.0,
                     step=0.01,
-                    label="Ghosts",
-                    info="0 none, 0.3 light, 0.6 busy, 0.8+ many soft snares plus some kicks.",
+                    label="Kick ghosts (−1 = auto)",
+                    info="Auto (−1) follows the main Ghosts knob; set 0-1 to override kick ghosts only.",
                 )
-                with gr.Row():
-                    kick_ghost_density = gr.Slider(
-                        0.0,
-                        1.0,
-                        value=0.10,
-                        step=0.01,
-                        label="Kick ghosts",
-                        info="Soft extra kicks independent of snare ghosts.",
-                    )
-                    snare_ghost_density = gr.Slider(
-                        0.0,
-                        1.0,
-                        value=0.35,
-                        step=0.01,
-                        label="Snare ghosts",
-                        info="Soft non-backbeat snares and related roll budget.",
-                    )
+                snare_ghost_density = gr.Slider(
+                    -1.0,
+                    1.0,
+                    value=-1.0,
+                    step=0.01,
+                    label="Snare ghosts (−1 = auto)",
+                    info="Auto (−1) follows the main Ghosts knob; set 0-1 to override snare ghosts only.",
+                )
+            with gr.Row():
                 hihat_density = gr.Slider(
                     0.0,
                     1.0,
@@ -1425,47 +1546,25 @@ def build_ui(app: SketchDiffusionListenApp) -> gr.Blocks:
                     label="Hats",
                     info="0 sparse, 0.5 steady 8ths/16ths, 0.8+ dense hat subdivisions.",
                 )
-                hihat_openness = gr.Slider(
+                crash_density = gr.Slider(
                     0.0,
                     1.0,
                     value=0.0,
                     step=0.01,
-                    label="Hat openness",
-                    info="0 closed, 0.3 accents, 0.7+ open/washy hats.",
+                    label="Crashes",
+                    info="0 none; crashes land on the downbeat, more and louder as you raise it.",
                 )
-                fill_density = gr.Slider(
-                    0.0,
-                    1.0,
-                    value=0.0,
-                    step=0.01,
-                    label="Fill amount",
-                    info="0 none, 0.4 small pickups, 0.7+ tom runs/ride/crashes, 1 heavy fills.",
-                )
-                fill_shape = gr.Dropdown(
-                    choices=["down", "up", "mixed", "ramp_up", "ramp_down", "peak_end"],
-                    value="down",
-                    label="Fill shape",
-                    interactive=True,
-                )
-                seed = gr.Number(value=1234, precision=0, label="Seed")
-                diffusion_checkpoint = gr.Dropdown(
-                    choices=_labeled_ckpt_choices(app.diffusion_checkpoint_choices),
-                    value=app.default_diffusion_checkpoint,
-                    allow_custom_value=True,
-                    label="Diffusion checkpoint",
-                    interactive=True,
-                )
-                refresh_checkpoints_btn = gr.Button("Refresh Checkpoints", variant="secondary")
-        with gr.Row():
-            preview_btn = gr.Button("Render Grid", variant="secondary")
-            audio_btn = gr.Button("Generate Audio", variant="primary", interactive=not bool(app.args.grid_only))
-        with gr.Row():
-            audio_out = gr.Audio(label="Audio", type="filepath")
-            chunk_files = gr.Files(label="Chunk WAVs")
-            json_out = gr.JSON(label="Events")
-        with gr.Row():
-            sketch_plot = gr.Plot(label="Sketch and Events")
-        with gr.Row():
+            fill_shape = gr.Dropdown(
+                choices=["down", "up", "mixed", "ramp_up", "ramp_down", "peak_end"],
+                value="down",
+                label="Fill shape",
+                interactive=True,
+            )
+            refresh_checkpoints_btn = gr.Button("Refresh Checkpoints", variant="secondary")
+            gr.Markdown(
+                "**Conditioning grid** — the seconds-aligned control field the diffusion model "
+                "actually sees, rendered from your sketch and the controls above."
+            )
             grid_plot = gr.Plot(label="Conditioning Grid")
 
         inputs = [
@@ -1485,6 +1584,7 @@ def build_ui(app: SketchDiffusionListenApp) -> gr.Blocks:
             hihat_openness,
             fill_density,
             fill_shape,
+            crash_density,
             seed,
             diffusion_checkpoint,
         ]
