@@ -75,8 +75,8 @@ The `Diffusion checkpoint` menu contains the shipped trained renderers:
 - `direct PCA regressor`: deterministic one-pass baseline.
 
 To compare them, keep the same grid, controls, and seed; switch the checkpoint;
-then click `Generate Audio` again. The direct regressor ignores guidance and
-seed because it is deterministic.
+then click `Generate Audio` again. The direct regressor ignores the seed
+because it is deterministic.
 
 ## 5. Files Produced By A Run
 

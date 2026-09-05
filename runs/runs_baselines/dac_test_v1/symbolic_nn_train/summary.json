@@ -1,0 +1,21 @@
+{
+  "audio_sec_per_sec": 55.41515426457948,
+  "baseline_mode": "symbolic_nn_train",
+  "cache_root": "<DRUMTOGRID_ROOT>/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+  "clips_per_sec": 31.440999890963756,
+  "codec_decode_sec_total": 13.640754735097289,
+  "device_name": "NVIDIA GeForce RTX 3080",
+  "export_wall_sec_total": 55.11911217868328,
+  "model_forward_sec_total": 0.0,
+  "num_examples": 1733,
+  "num_parameters": 0,
+  "out_dir": "<DRUMTOGRID_ROOT>/runs_baselines/dac_test_v1/symbolic_nn_train",
+  "peak_gpu_mem_allocated_mb": 5763.3623046875,
+  "peak_gpu_mem_reserved_mb": 9134.0,
+  "resolved_device": "cuda:0",
+  "rtf_end_to_end": 0.018045605272981883,
+  "rtf_model_only": 0.0,
+  "sample_rate": 44100,
+  "split": "test",
+  "total_audio_sec_generated": 3054.4341043083955
+}

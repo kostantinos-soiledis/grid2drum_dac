@@ -115,7 +115,6 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--max-items", type=int, default=0)
-    parser.add_argument("--guidance-scale", type=float, default=1.0)
     parser.add_argument(
         "--sample-seed",
         type=int,
@@ -358,7 +357,6 @@ def main() -> None:
             diffusion=diffusion,
             batch=ablated_batch,
             device=device,
-            guidance_scale=float(args.guidance_scale),
             x0_clip_norm=float(args.x0_clip_norm) if args.x0_clip_norm is not None else None,
             sample_seed=(int(args.sample_seed) + int(batch_index) if int(args.sample_seed) >= 0 else None),
             use_bpm_inference_geometry=bool(args.use_bpm_inference_geometry),
@@ -451,7 +449,6 @@ def main() -> None:
         "conditioning_ablation": str(conditioning_ablation),
         "num_examples": int(num_examples),
         "batch_size": int(args.batch_size),
-        "guidance_scale": float(args.guidance_scale),
         "sample_seed": (int(args.sample_seed) if int(args.sample_seed) >= 0 else None),
         "samples_per_conditioning_input": 1,
         "x0_clip_norm": float(args.x0_clip_norm) if args.x0_clip_norm is not None else None,

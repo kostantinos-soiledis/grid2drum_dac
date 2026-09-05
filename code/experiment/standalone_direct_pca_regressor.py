@@ -1274,7 +1274,6 @@ class DirectRegressorConfig:
     num_heads: int = 8
     mlp_ratio: float = 4.0
     dropout: float = 0.1
-    cond_dropout_prob: float = 0.0
 
 
 class ResidualSequenceConvBlock(nn.Module):
@@ -1409,11 +1408,6 @@ class DirectPCASequenceRegressor(nn.Module):
             target_valid_mask_bt=target_valid_mask_bt,
             grid_valid_mask_bt=grid_valid_mask_bt,
         )
-        if self.training and float(self.cfg.cond_dropout_prob) > 0.0:
-            drop_b = torch.rand(int(cond.shape[0]), device=cond.device) < float(self.cfg.cond_dropout_prob)
-            if bool(drop_b.any()):
-                cond = cond.clone()
-                cond[drop_b] = 0.0
         x = self.cond_proj(cond)
         if self.positional_encoding == "seconds":
             pos = sinusoidal_time_positions(token_times_sec.to(device=x.device), int(self.cfg.d_model), rate_hz=float(self.cfg.positional_rate_hz))
@@ -1753,7 +1747,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num-heads", type=int, default=8)
     parser.add_argument("--mlp-ratio", type=float, default=4.0)
     parser.add_argument("--dropout", type=float, default=0.1)
-    parser.add_argument("--cond-dropout-prob", type=float, default=0.0)
     parser.add_argument("--positional-encoding", type=str, default="seconds", choices=("seconds", "index"))
     parser.add_argument("--positional-rate-hz", type=float, default=0.0)
 
@@ -1872,7 +1865,6 @@ def main() -> None:
         num_heads=int(args.num_heads),
         mlp_ratio=float(args.mlp_ratio),
         dropout=float(args.dropout),
-        cond_dropout_prob=float(args.cond_dropout_prob),
     )
     model = DirectPCASequenceRegressor(cfg).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=float(args.lr), weight_decay=float(args.weight_decay))

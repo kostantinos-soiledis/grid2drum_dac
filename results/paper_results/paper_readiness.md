@@ -24,7 +24,7 @@ This report is generated from completed artifacts only. It separates claims that
 
 ## Artifact Summary
 
-- Git commit: `ad1acca1db8ef86d075c1a25a43dc2e4caaffd21`
-- Aggregated rows: 13
+- Git commit: `75b0d9ae6f49ddc24ab7b152b7036376a814462b`
+- Aggregated rows: 14
 - Rows with missing metrics: 0
-- Cache: `<DRUMTOGRID_ROOT>/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1`
+- Cache: `<DAC_CACHE_ROOT>`

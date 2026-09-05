@@ -34,3 +34,10 @@ sketch_diffusion_out/
 
 # Paper sources stay local only
 /paper/
+
+# Compiled manuscript drafts (submission PDFs live with the paper sources)
+/*.pdf
+
+# Static demo pages and their audio: the hosted listener replaces them
+/docs/
+/results/paper_results/single_kit_examples/

@@ -2,7 +2,9 @@
 
 Drum-grid–conditioned audio generation via latent diffusion in a PCA subspace of the DAC codec.
 
-**▶ Listen first: [live demo page](https://anonymous.4open.science/w/grid2drum_dac-A24F/)** — side-by-side generated, regressor-baseline, and ground-truth drum audio for held-out examples.
+**▶ Try it in your browser: [Grid2Drum-DAC listener on Hugging Face](https://huggingface.co/spaces/soilkon/grid2drum-dac-listener)** — generate drum audio from a grid, or compare generated, regressor-baseline, and ground-truth audio for held-out examples.
+
+Source: [github.com/kostantinos-soiledis/grid2drum_dac](https://github.com/kostantinos-soiledis/grid2drum_dac)
 
 ## How it works
 
@@ -15,52 +17,6 @@ Drum-grid–conditioned audio generation via latent diffusion in a PCA subspace 
 Qualitative comparison against the direct PCA-regressor baseline:
 
 ![Qualitative spectrogram comparison](figures/spectrogram_comparison.png)
-
-## Try the demo
-
-Model weights (~2 GB) ship via Git LFS:
-
-```bash
-git lfs install
-git clone <this-repository-url>
-# code-only clone, no weights: GIT_LFS_SKIP_SMUDGE=1 git clone <this-repository-url>
-```
-
-> Viewing this through an anonymized mirror? The mirror cannot serve the LFS
-> model weights, but the demo page above works fully in the browser.
-
-The shipped checkpoints are described in [runs/README.md](runs/README.md) and
-[runs/weights/manifest.json](runs/weights/manifest.json).
-
-### Smoke test (CPU)
-
-```bash
-cd code/demo
-pip install -r ../../requirements.txt
-python scripts/sketch_diffusion_infer.py \
-  --sketch-json smoke_sketch.json \
-  --sketch-checkpoint ../../runs/sketch_expander_dac44_native_v5/best_sketch_expander.pt \
-  --diffusion-train-dir ../../runs/runs_dac/dac_25steps \
-  --cache-root ../../runs/mini_cache \
-  --device cpu \
-  --out-dir /tmp/drumtogrid_smoke_audio \
-  --overwrite
-```
-
-This writes `/tmp/drumtogrid_smoke_audio/output.wav`.
-
-### Interactive listener
-
-```bash
-python code/demo/app.py                    # CPU
-APP_DEVICE=cuda:0 python code/demo/app.py  # GPU
-```
-
-Launches the Gradio UI; it expects the runtime files under `runs/` (present
-after a full LFS clone). The main panel exposes the everyday knobs (velocity,
-beats, BPM, pattern variation, ghosts, hat openness, fill); guidance, seed,
-feel, per-instrument ghost overrides, hat density, and crashes live under
-**Advanced settings**.
 
 ## Using the repo
 

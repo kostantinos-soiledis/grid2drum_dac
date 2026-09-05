@@ -96,7 +96,6 @@ from data.sketch_render import DEFAULT_GRID_FRAME_RATE, DEFAULT_NUM_BEATS, build
 from io_utils import save_audio, write_json
 from model import (
     DEFAULT_BEAT_CROSSFADE_MS,
-    DEFAULT_INFERENCE_GUIDANCE_SCALE,
     DEFAULT_INFERENCE_NUM_BEATS,
     DEFAULT_SAMPLE_X0_CLIP_NORM,
     _prepare_batch_tensors,
@@ -140,12 +139,8 @@ def _default_diffusion_train_dir() -> Path:
 
 
 DEFAULT_SKETCH_CHECKPOINT = _default_sketch_checkpoint()
-MIN_UI_GUIDANCE_SCALE = 1.0
-MAX_UI_GUIDANCE_SCALE = 5.0
-DEFAULT_UI_GUIDANCE_SCALE = DEFAULT_INFERENCE_GUIDANCE_SCALE
 # Guidance lives in the Advanced section; default a touch above training (1.0) so
 # the first listen follows the sketch a little harder without inviting artifacts.
-DEFAULT_ADVANCED_GUIDANCE_SCALE = 1.5
 DEFAULT_DIFFUSION_TRAIN_DIR = _default_diffusion_train_dir()
 DEFAULT_CACHE_ROOT = RUNS_ROOT / "mini_cache"
 DEFAULT_OUT_DIR = REPO_ROOT / ".listen_ui_runs"
@@ -184,7 +179,6 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--num-beats", type=int, default=DEFAULT_INFERENCE_NUM_BEATS)
     parser.add_argument("--target-token-rate-hz", type=float, default=0.0)
     parser.add_argument("--grid-frame-rate", type=float, default=DEFAULT_GRID_FRAME_RATE)
-    parser.add_argument("--guidance-scale", type=float, default=DEFAULT_UI_GUIDANCE_SCALE)
     parser.add_argument("--x0-clip-norm", type=float, default=DEFAULT_SAMPLE_X0_CLIP_NORM)
     parser.add_argument("--beat-crossfade-ms", type=float, default=DEFAULT_BEAT_CROSSFADE_MS)
     parser.add_argument("--chunk-crossfade-ms", type=float, default=25.0)
@@ -396,16 +390,6 @@ def _resolve_output_beats(value: Any) -> int:
     beats = max(DEFAULT_NUM_BEATS, min(64, int(beats)))
     chunks = max(1, int(math.ceil(float(beats) / float(DEFAULT_NUM_BEATS))))
     return int(chunks * DEFAULT_NUM_BEATS)
-
-
-def _resolve_guidance_scale(value: Any) -> float:
-    try:
-        guidance = float(value)
-    except (TypeError, ValueError):
-        guidance = float(DEFAULT_UI_GUIDANCE_SCALE)
-    if not math.isfinite(guidance):
-        guidance = float(DEFAULT_UI_GUIDANCE_SCALE)
-    return float(max(MIN_UI_GUIDANCE_SCALE, min(MAX_UI_GUIDANCE_SCALE, guidance)))
 
 
 def _vary_controls_for_chunk(
@@ -1033,7 +1017,6 @@ class SketchDiffusionListenApp:
         *,
         run_dir: Path,
         resources: "DiffusionResources | DirectResources",
-        guidance_scale: float,
         sample_seed: int,
     ) -> tuple[Path, list[Path], dict[str, Any]]:
         prepared = _prepare_batch_tensors(batch, self.device, require_target=False, require_timing=False)
@@ -1045,7 +1028,7 @@ class SketchDiffusionListenApp:
         )
         with torch.no_grad():
             if isinstance(resources, DirectResources):
-                # Deterministic one-shot regression; guidance_scale/sample_seed do not apply.
+                # Deterministic one-shot regression; sample_seed does not apply.
                 # Inputs mirror what sample_ddpm feeds model.encode_conditioning: grid fields
                 # from the prepared device batch, timing/masks from the inference geometry.
                 latent_norm = resources.model(
@@ -1062,7 +1045,6 @@ class SketchDiffusionListenApp:
                     diffusion=resources.diffusion,
                     batch=batch,
                     device=self.device,
-                    guidance_scale=float(guidance_scale),
                     sample_seed=int(sample_seed),
                     x0_clip_norm=float(self.args.x0_clip_norm) if self.args.x0_clip_norm is not None else None,
                     use_bpm_inference_geometry=True,
@@ -1135,7 +1117,6 @@ class SketchDiffusionListenApp:
             "sample_rate": int(resources.sample_rate),
             "beat_crossfade_ms": float(self.args.beat_crossfade_ms),
             "chunk_crossfade_ms": float(self.args.chunk_crossfade_ms),
-            "guidance_scale": float(guidance_scale),
             "sample_seed": int(sample_seed),
             "wav": wav_path.name,
             "chunk_wavs": [path.name for path in chunk_wavs],
@@ -1147,7 +1128,6 @@ class SketchDiffusionListenApp:
         velocity: float,
         velocity_variation: float,
         output_beats: float,
-        guidance_scale: float,
         pattern_variation: float,
         bpm: float,
         feel_style: str,
@@ -1171,7 +1151,6 @@ class SketchDiffusionListenApp:
         seed_value = int(seed)
         _set_seed(seed_value)
         output_beats_value = _resolve_output_beats(output_beats)
-        guidance_value = _resolve_guidance_scale(guidance_scale)
         chunk_count = int(output_beats_value // DEFAULT_NUM_BEATS)
         sketch_hits = _hits_table_to_tensor(hits_table)
         sketch_vel = _derive_velocity_matrix(
@@ -1293,7 +1272,6 @@ class SketchDiffusionListenApp:
                 batch,
                 run_dir=run_dir,
                 resources=resources,
-                guidance_scale=float(guidance_value),
                 sample_seed=int(seed_value),
             )
             audio_path = str(wav_path)
@@ -1322,7 +1300,6 @@ class SketchDiffusionListenApp:
                 name: float(controls[idx].item())
                 for idx, name in enumerate(self.sketch_model.cfg.control_names)
             },
-            "guidance_scale": float(guidance_value),
             "decode_mode": "direct_latent",
             "seed": int(seed_value),
             "sample_seed": int(seed_value),
@@ -1389,7 +1366,7 @@ def build_ui(app: SketchDiffusionListenApp) -> gr.Blocks:
             "Toggle steps in the **grid** to sketch a one-bar drum pattern, shape the groove with "
             "the main controls on the right, then **Render Grid** to preview what you drew or "
             "**Generate Audio** to hear it. The plot right under the grid shows your pattern and how "
-            "it expands into events. Finer controls — guidance, feel, per-instrument ghost/hat/crash "
+            "it expands into events. Finer controls — feel, per-instrument ghost/hat/crash "
             "detail, seed, and the model's internal conditioning grid — live under **Advanced settings**."
         )
         with gr.Row():
@@ -1496,14 +1473,6 @@ def build_ui(app: SketchDiffusionListenApp) -> gr.Blocks:
             json_out = gr.JSON(label="Events")
         with gr.Accordion("Advanced settings", open=False):
             with gr.Row():
-                guidance_scale = gr.Slider(
-                    MIN_UI_GUIDANCE_SCALE,
-                    MAX_UI_GUIDANCE_SCALE,
-                    value=_resolve_guidance_scale(DEFAULT_ADVANCED_GUIDANCE_SCALE),
-                    step=0.05,
-                    label="Guidance",
-                    info="1 matches training; 2-3 follows conditioning harder; 4-5 may add artifacts.",
-                )
                 seed = gr.Number(value=1234, precision=0, label="Seed")
             with gr.Row():
                 feel_style = gr.Dropdown(
@@ -1572,7 +1541,6 @@ def build_ui(app: SketchDiffusionListenApp) -> gr.Blocks:
             velocity,
             velocity_variation,
             output_beats,
-            guidance_scale,
             pattern_variation,
             bpm,
             feel_style,

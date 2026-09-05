@@ -71,7 +71,6 @@ def _parse_args() -> argparse.Namespace:
         default=-1,
         help="Metric max-items. Defaults to --max-items; use 0 for all exported predictions.",
     )
-    parser.add_argument("--guidance-scale", type=float, default=1.0)
     parser.add_argument(
         "--sample-seed",
         type=int,
@@ -253,8 +252,6 @@ def _export_dac_ce(
         str(int(args.dac_batch_size)),
         "--num-workers",
         str(int(args.num_workers)),
-        "--guidance-scale",
-        str(float(args.guidance_scale)),
         "--sample-seed",
         str(int(args.sample_seed)),
         "--conditioning-ablation",

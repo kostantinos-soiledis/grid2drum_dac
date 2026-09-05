@@ -295,25 +295,11 @@ def _load_init_checkpoint_payload(
     config_payload.setdefault("positional_encoding", "index")
     config_payload.setdefault("positional_rate_hz", 50.0)
     loaded_cfg = DiffusionTransformerConfig(**config_payload)
-    payload["_allow_partial_model_state_dict"] = False
     if asdict(loaded_cfg) != asdict(expected_cfg):
-        timbre_keys = {
-            "timbre_conditioning",
-            "timbre_bank_dim",
-            "timbre_num_families",
-            "timbre_max_classes",
-            "timbre_velocity_bins",
-            "timbre_dropout_prob",
-            "timbre_class_dropout_prob",
-        }
-        loaded_base = {key: value for key, value in asdict(loaded_cfg).items() if key not in timbre_keys}
-        expected_base = {key: value for key, value in asdict(expected_cfg).items() if key not in timbre_keys}
-        if loaded_base != expected_base:
-            raise ValueError(
-                "init checkpoint config does not match the requested model/frontend configuration. "
-                f"checkpoint={checkpoint_path}"
-            )
-        payload["_allow_partial_model_state_dict"] = True
+        raise ValueError(
+            "init checkpoint config does not match the requested model/frontend configuration. "
+            f"checkpoint={checkpoint_path}"
+        )
     payload["checkpoint_path"] = str(checkpoint_path)
     return payload
 
@@ -369,7 +355,6 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--weight-decay", type=float, default=1.0e-4)
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--sample-idx", type=int, default=3)
-    parser.add_argument("--guidance-scale", type=float, default=1.0)
     parser.add_argument(
         "--num-steps",
         type=int,
@@ -402,23 +387,12 @@ def _parse_args() -> argparse.Namespace:
             "val_audio_mrstft",
             "val_x0",
             "val_x0_loss",
-            "val_timbre_proj_mse",
             "val_quant_embed_mse",
             "val_rvq_ce",
             "val_onset_weighted_x0",
         ),
     )
-    parser.add_argument("--timbre-probe-path", type=str, default="")
-    parser.add_argument(
-        "--timbre-bank-path",
-        type=str,
-        default="",
-        help="Optional support_bank.pt exported by timbre_transfer for reference-kit conditioning.",
-    )
-    parser.add_argument("--timbre-dropout-prob", type=float, default=0.0)
-    parser.add_argument("--timbre-class-dropout-prob", type=float, default=0.0)
     parser.add_argument("--x0-mse-weight", type=float, default=0.0)
-    parser.add_argument("--timbre-proj-mse-weight", type=float, default=0.0)
     parser.add_argument("--quant-embed-mse-weight", type=float, default=0.0)
     parser.add_argument("--rvq-ce-weight", type=float, default=0.0)
     parser.add_argument("--onset-loss-weighting", action="store_true")
@@ -473,57 +447,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--num-heads", type=int, default=8)
     parser.add_argument("--mlp-ratio", type=float, default=4.0)
     parser.add_argument("--dropout", type=float, default=0.1)
-    parser.add_argument("--cond-dropout-prob", type=float, default=0.0)
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()
-
-
-def _load_timbre_bank_payload(path_text: str) -> dict[str, Any] | None:
-    path = Path(str(path_text).strip()).expanduser().resolve()
-    if not str(path_text).strip():
-        return None
-    if not path.is_file():
-        raise FileNotFoundError(f"timbre bank not found: {path}")
-    payload = dict(torch.load(path, map_location="cpu", weights_only=False))
-    required = (
-        "timbre_bank_latents",
-        "timbre_bank_family_ids",
-        "timbre_bank_class_ids",
-        "timbre_bank_velocity",
-        "timbre_bank_mask",
-        "timbre_family_default_indices",
-        "timbre_class_token_indices",
-    )
-    missing = [key for key in required if key not in payload]
-    if missing:
-        raise KeyError(f"timbre bank is missing required tensors: {missing}")
-    payload["_path"] = str(path)
-    return payload
-
-
-def _attach_timbre_bank_to_batch(batch: dict[str, Any], bank: dict[str, Any] | None) -> dict[str, Any]:
-    if bank is None:
-        return batch
-    out = dict(batch)
-    batch_size = int(torch.as_tensor(batch["grid"]).shape[0])
-
-    def _expand(key: str) -> torch.Tensor:
-        value = torch.as_tensor(bank[key]).contiguous()
-        if int(value.dim()) >= 1 and int(value.shape[0]) == int(batch_size):
-            return value
-        return value.unsqueeze(0).expand(int(batch_size), *tuple(value.shape)).contiguous()
-
-    for key in (
-        "timbre_bank_latents",
-        "timbre_bank_family_ids",
-        "timbre_bank_class_ids",
-        "timbre_bank_velocity",
-        "timbre_bank_mask",
-        "timbre_family_default_indices",
-        "timbre_class_token_indices",
-    ):
-        out[key] = _expand(key)
-    return out
 
 
 def _save_diffusion_checkpoint(
@@ -596,25 +521,6 @@ def main() -> None:
         else:
             dataloader_mp_context = requested_mp_context
     persistent_workers = int(args.num_workers) > 0 and not bool(args.no_persistent_workers)
-    timbre_projection: torch.Tensor | None = None
-    timbre_probe_metadata: dict[str, Any] = {}
-    timbre_probe_path = str(args.timbre_probe_path).strip()
-    if float(args.timbre_proj_mse_weight) > 0.0 and not timbre_probe_path:
-        raise ValueError("--timbre-probe-path is required when --timbre-proj-mse-weight > 0")
-    if timbre_probe_path:
-        probe_path = Path(timbre_probe_path).expanduser().resolve()
-        if not probe_path.is_file():
-            raise FileNotFoundError(f"timbre probe not found: {probe_path}")
-        probe_payload = dict(torch.load(probe_path, map_location="cpu", weights_only=False))
-        projection_payload = probe_payload.get("projection_matrix")
-        if projection_payload is None:
-            raise KeyError(f"timbre probe missing projection_matrix: {probe_path}")
-        timbre_projection = torch.as_tensor(projection_payload, dtype=torch.float32, device=device).contiguous()
-        if int(timbre_projection.dim()) != 2:
-            raise ValueError(
-                f"expected timbre projection [K,D], got {tuple(timbre_projection.shape)} from {probe_path}"
-            )
-        timbre_probe_metadata = dict(probe_payload.get("metadata") or {})
 
     out_dir = Path(args.out_dir).resolve()
     resume_checkpoint_arg = str(args.resume_checkpoint or "").strip()
@@ -722,27 +628,11 @@ def main() -> None:
     target_pca_basis_path = resolve_target_pca_basis_path_from_cache_config(args.cache_root)
     target_dim = int(sample_batch["target_btd"].shape[-1])
     target_full_dim = int(sample_batch.get("target_full_dim", target_dim))
-    timbre_bank_payload = _load_timbre_bank_payload(str(args.timbre_bank_path))
-    if timbre_bank_payload is not None:
-        bank_dim = int(torch.as_tensor(timbre_bank_payload["timbre_bank_latents"]).shape[-1])
-        sample_batch = _attach_timbre_bank_to_batch(sample_batch, timbre_bank_payload)
-        fixed_val_batch = _attach_timbre_bank_to_batch(fixed_val_batch, timbre_bank_payload)
-    else:
-        bank_dim = 0
     fixed_val_batch = apply_conditioning_ablation(
         fixed_val_batch,
         conditioning_ablation,
         batch_index=0,
     )
-    if timbre_projection is not None and int(timbre_projection.shape[1]) != int(target_dim):
-        probe_target_dim = timbre_probe_metadata.get("target_dim")
-        probe_cache_root = timbre_probe_metadata.get("cache_root", "")
-        raise ValueError(
-            "timbre projection dimension does not match the training target dimension: "
-            f"projection={tuple(timbre_projection.shape)} target_dim={int(target_dim)} "
-            f"probe_target_dim={probe_target_dim!r} probe_cache_root={probe_cache_root!r}. "
-            "Export a probe from the same cache root/target layout as this training run."
-        )
     target_token_rate_hz = (
         float(args.positional_rate_hz)
         if float(args.positional_rate_hz) > 0.0
@@ -759,11 +649,6 @@ def main() -> None:
         num_heads=int(args.num_heads),
         mlp_ratio=float(args.mlp_ratio),
         dropout=float(args.dropout),
-        cond_dropout_prob=float(args.cond_dropout_prob),
-        timbre_conditioning=timbre_bank_payload is not None,
-        timbre_bank_dim=int(bank_dim),
-        timbre_dropout_prob=float(args.timbre_dropout_prob),
-        timbre_class_dropout_prob=float(args.timbre_class_dropout_prob),
     )
     model = ConditionalDiffusionTransformer(cfg).to(device)
     diffusion = GaussianDiffusion1D(num_steps=int(args.num_steps)).to(device)
@@ -775,13 +660,7 @@ def main() -> None:
             expected_cfg=cfg,
         )
         codec_metadata = resolve_codec_metadata_from_payload(init_payload, fallback=codec_metadata).to_dict()
-        strict_load = not bool(init_payload.get("_allow_partial_model_state_dict", False))
-        load_result = model.load_state_dict(dict(init_payload["model_state_dict"]), strict=bool(strict_load))
-        if not bool(strict_load):
-            print(
-                "loaded base checkpoint with new timbre modules: "
-                f"missing={list(load_result.missing_keys)} unexpected={list(load_result.unexpected_keys)}"
-            )
+        model.load_state_dict(dict(init_payload["model_state_dict"]), strict=True)
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=float(args.lr),
@@ -901,22 +780,13 @@ def main() -> None:
         "conditioning_ablation": str(conditioning_ablation),
         "sample_idx": int(args.sample_idx),
         "preview_sample_idx": int(preview_sample_idx),
-        "guidance_scale": float(args.guidance_scale),
         **training_geometry_payload,
         "eval_plot_steps": [int(x) for x in plot_steps],
         "x0_clip_norm": float(args.x0_clip_norm),
         "audio_wave_l1_weight": float(args.audio_wave_l1_weight),
         "audio_mrstft_weight": float(args.audio_mrstft_weight),
         "audio_mrstft_resolutions": [[int(n_fft), int(hop)] for n_fft, hop in audio_mrstft_resolutions],
-        "timbre_probe_path": str(Path(timbre_probe_path).expanduser().resolve()) if timbre_probe_path else "",
-        "timbre_bank_path": "" if timbre_bank_payload is None else str(timbre_bank_payload.get("_path", "")),
-        "timbre_bank_summary": {} if timbre_bank_payload is None else dict(timbre_bank_payload.get("summary") or {}),
-        "timbre_probe_metadata": timbre_probe_metadata,
-        "timbre_projection_shape": (
-            [int(x) for x in timbre_projection.shape] if timbre_projection is not None else []
-        ),
         "x0_mse_weight": float(args.x0_mse_weight),
-        "timbre_proj_mse_weight": float(args.timbre_proj_mse_weight),
         "quant_embed_mse_weight": float(args.quant_embed_mse_weight),
         "rvq_ce_weight": float(args.rvq_ce_weight),
         "quant_codebook_embedding_shape": (
@@ -985,7 +855,6 @@ def main() -> None:
             sample_rate=sample_rate,
             out_dir=samples_dir,
             sample_idx=int(preview_sample_idx),
-            guidance_scale=float(args.guidance_scale),
             start_noise=fixed_start_noise,
             step_noises=fixed_step_noises,
             x0_clip_norm=float(args.x0_clip_norm),
@@ -1067,7 +936,6 @@ def main() -> None:
         train_running_audio_mrstft = 0.0
         train_running_x0 = 0.0
         train_running_x0_loss = 0.0
-        train_running_timbre_proj_mse = 0.0
         train_running_quant_embed_mse = 0.0
         train_running_rvq_ce = 0.0
         train_running_onset_weighted_x0 = 0.0
@@ -1082,7 +950,6 @@ def main() -> None:
         for batch_index, batch in enumerate(
             _progress(train_loader, desc=f"train {epoch:03d} batches", total=int(train_batches_per_epoch))
         ):
-            batch = _attach_timbre_bank_to_batch(batch, timbre_bank_payload)
             batch = apply_conditioning_ablation(
                 batch,
                 conditioning_ablation,
@@ -1101,9 +968,7 @@ def main() -> None:
                 audio_mrstft_weight=float(args.audio_mrstft_weight),
                 audio_mrstft_resolutions=audio_mrstft_resolutions,
                 x0_clip_norm=float(args.x0_clip_norm) if args.x0_clip_norm is not None else None,
-                timbre_projection=timbre_projection,
                 x0_mse_weight=float(args.x0_mse_weight),
-                timbre_proj_mse_weight=float(args.timbre_proj_mse_weight),
                 quant_embed_mse_weight=float(args.quant_embed_mse_weight),
                 rvq_ce_weight=float(args.rvq_ce_weight),
                 quant_codebook_embed_ckd=quant_codebook_embed_ckd,
@@ -1122,7 +987,6 @@ def main() -> None:
             train_running_audio_mrstft += float(torch.as_tensor(out["audio_mrstft"]).item())
             train_running_x0 += float(torch.as_tensor(out["x0_mse_median"]).item())
             train_running_x0_loss += float(torch.as_tensor(out["x0_loss"]).item())
-            train_running_timbre_proj_mse += float(torch.as_tensor(out["timbre_proj_mse"]).item())
             train_running_quant_embed_mse += float(torch.as_tensor(out["quant_embed_mse"]).item())
             train_running_rvq_ce += float(torch.as_tensor(out["rvq_ce"]).item())
             train_running_onset_weighted_x0 += float(torch.as_tensor(out["onset_weighted_x0"]).item())
@@ -1148,7 +1012,6 @@ def main() -> None:
         train_audio_mrstft = float(train_running_audio_mrstft / float(train_n_batches))
         train_x0 = float(train_running_x0 / float(train_n_batches))
         train_x0_loss = float(train_running_x0_loss / float(train_n_batches))
-        train_timbre_proj_mse = float(train_running_timbre_proj_mse / float(train_n_batches))
         train_quant_embed_mse = float(train_running_quant_embed_mse / float(train_n_batches))
         train_rvq_ce = float(train_running_rvq_ce / float(train_n_batches))
         train_onset_weighted_x0 = float(train_running_onset_weighted_x0 / float(train_n_batches))
@@ -1173,7 +1036,6 @@ def main() -> None:
         val_running_audio_mrstft = 0.0
         val_running_x0 = 0.0
         val_running_x0_loss = 0.0
-        val_running_timbre_proj_mse = 0.0
         val_running_quant_embed_mse = 0.0
         val_running_rvq_ce = 0.0
         val_running_onset_weighted_x0 = 0.0
@@ -1186,7 +1048,6 @@ def main() -> None:
 
         with torch.no_grad():
             for batch_index, batch in enumerate(_progress(val_loader, desc=f"val   {epoch:03d} batches")):
-                batch = _attach_timbre_bank_to_batch(batch, timbre_bank_payload)
                 batch = apply_conditioning_ablation(
                     batch,
                     conditioning_ablation,
@@ -1205,9 +1066,7 @@ def main() -> None:
                     audio_mrstft_weight=float(args.audio_mrstft_weight),
                     audio_mrstft_resolutions=audio_mrstft_resolutions,
                     x0_clip_norm=float(args.x0_clip_norm) if args.x0_clip_norm is not None else None,
-                    timbre_projection=timbre_projection,
                     x0_mse_weight=float(args.x0_mse_weight),
-                    timbre_proj_mse_weight=float(args.timbre_proj_mse_weight),
                     quant_embed_mse_weight=float(args.quant_embed_mse_weight),
                     rvq_ce_weight=float(args.rvq_ce_weight),
                     quant_codebook_embed_ckd=quant_codebook_embed_ckd,
@@ -1223,7 +1082,6 @@ def main() -> None:
                 val_running_audio_mrstft += float(torch.as_tensor(out["audio_mrstft"]).item())
                 val_running_x0 += float(torch.as_tensor(out["x0_mse_median"]).item())
                 val_running_x0_loss += float(torch.as_tensor(out["x0_loss"]).item())
-                val_running_timbre_proj_mse += float(torch.as_tensor(out["timbre_proj_mse"]).item())
                 val_running_quant_embed_mse += float(torch.as_tensor(out["quant_embed_mse"]).item())
                 val_running_rvq_ce += float(torch.as_tensor(out["rvq_ce"]).item())
                 val_running_onset_weighted_x0 += float(torch.as_tensor(out["onset_weighted_x0"]).item())
@@ -1241,7 +1099,6 @@ def main() -> None:
         val_audio_mrstft = float(val_running_audio_mrstft / float(val_n_batches))
         val_x0 = float(val_running_x0 / float(val_n_batches))
         val_x0_loss = float(val_running_x0_loss / float(val_n_batches))
-        val_timbre_proj_mse = float(val_running_timbre_proj_mse / float(val_n_batches))
         val_quant_embed_mse = float(val_running_quant_embed_mse / float(val_n_batches))
         val_rvq_ce = float(val_running_rvq_ce / float(val_n_batches))
         val_onset_weighted_x0 = float(val_running_onset_weighted_x0 / float(val_n_batches))
@@ -1267,7 +1124,6 @@ def main() -> None:
             "val_audio_mrstft": float(val_audio_mrstft),
             "val_x0": float(val_x0),
             "val_x0_loss": float(val_x0_loss),
-            "val_timbre_proj_mse": float(val_timbre_proj_mse),
             "val_quant_embed_mse": float(val_quant_embed_mse),
             "val_rvq_ce": float(val_rvq_ce),
             "val_onset_weighted_x0": float(val_onset_weighted_x0),
@@ -1287,7 +1143,6 @@ def main() -> None:
             "train_audio_mrstft": float(train_audio_mrstft),
             "train_x0": float(train_x0),
             "train_x0_loss": float(train_x0_loss),
-            "train_timbre_proj_mse": float(train_timbre_proj_mse),
             "train_quant_embed_mse": float(train_quant_embed_mse),
             "train_rvq_ce": float(train_rvq_ce),
             "train_onset_weighted_x0": float(train_onset_weighted_x0),
@@ -1307,7 +1162,6 @@ def main() -> None:
             "val_audio_mrstft": float(val_audio_mrstft),
             "val_x0": float(val_x0),
             "val_x0_loss": float(val_x0_loss),
-            "val_timbre_proj_mse": float(val_timbre_proj_mse),
             "val_quant_embed_mse": float(val_quant_embed_mse),
             "val_rvq_ce": float(val_rvq_ce),
             "val_onset_weighted_x0": float(val_onset_weighted_x0),
@@ -1432,13 +1286,13 @@ def main() -> None:
             f"train_loss={train_loss:.6f} train_diff={train_diffusion_loss:.6f} "
             f"train_audio_l1={train_audio_wave_l1:.6f} train_mrstft={train_audio_mrstft:.6f} "
             f"train_x0={train_x0:.6f} train_x0_loss={train_x0_loss:.6f} "
-            f"train_timbre={train_timbre_proj_mse:.6f} train_quant={train_quant_embed_mse:.6f} "
+            f"train_quant={train_quant_embed_mse:.6f} "
             f"train_rvq_ce={train_rvq_ce:.6f} "
             f"train_onset_x0={train_onset_weighted_x0:.6f} "
             f"val_loss={val_loss:.6f} val_diff={val_diffusion_loss:.6f} "
             f"val_audio_l1={val_audio_wave_l1:.6f} val_mrstft={val_audio_mrstft:.6f} "
             f"val_x0={val_x0:.6f} val_x0_loss={val_x0_loss:.6f} "
-            f"val_timbre={val_timbre_proj_mse:.6f} val_quant={val_quant_embed_mse:.6f} "
+            f"val_quant={val_quant_embed_mse:.6f} "
             f"val_rvq_ce={val_rvq_ce:.6f} "
             f"val_onset_x0={val_onset_weighted_x0:.6f} "
             f"{checkpoint_metric_name}={checkpoint_metric_value:.6f} "

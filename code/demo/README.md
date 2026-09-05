@@ -26,7 +26,7 @@ This writes:
 /tmp/drumtogrid_smoke_audio/output.wav
 ```
 
-`app.py` launches the real interactive Gradio interface. Reviewers can edit the drum grid, velocity, timing feel, density controls, guidance scale, seed, and checkpoint choice, then render conditioning previews and generated audio.
+`app.py` launches the real interactive Gradio interface. Reviewers can edit the drum grid, velocity, timing feel, density controls, seed, and checkpoint choice, then render conditioning previews and generated audio.
 
 For a ready-to-play walkthrough, see [`TUTORIAL.md`](TUTORIAL.md).
 

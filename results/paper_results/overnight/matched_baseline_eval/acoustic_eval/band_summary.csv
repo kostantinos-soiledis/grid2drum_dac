@@ -1,0 +1,2 @@
+model,low_flux_cosine,mid_flux_cosine,high_flux_cosine,band_balance_l1
+direct_pca_d1024_l8_seed1234,0.6396509456245919,0.7931164395268057,0.7931943493618617,0.20023110425377502

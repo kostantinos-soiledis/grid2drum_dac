@@ -37,6 +37,7 @@ BATCH_MODEL_ALIASES: dict[str, tuple[str, str]] = {
     "source_code_decode": ("baseline", "source_code_decode"),
     "symbolic_nn_train": ("baseline", "symbolic_nn_train"),
     "direct_pca_d1024_l6_seed1234": ("direct_pca", "direct_pca_d1024_l6_seed1234"),
+    "direct_pca_d1024_l8_seed1234": ("direct_pca", "direct_pca_d1024_l8_seed1234"),
 }
 
 METRIC_COLUMNS = (
@@ -167,7 +168,12 @@ def read_csv_rows(path: Path) -> list[dict[str, Any]]:
 def write_csv(path: Path, rows: Sequence[Mapping[str, Any]], columns: Sequence[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(columns), extrasaction="ignore")
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=list(columns),
+            extrasaction="ignore",
+            lineterminator="\n",
+        )
         writer.writeheader()
         for row in rows:
             writer.writerow({key: _csv_value(row.get(key, "")) for key in columns})
@@ -220,7 +226,10 @@ def rel(path: str | Path, repo_root: Path) -> str:
     try:
         return str(path_obj.resolve().relative_to(repo_root.resolve()))
     except Exception:
-        return str(path)
+        try:
+            return str(path_obj.resolve().relative_to(PACKAGE_ROOT.resolve()))
+        except Exception:
+            return str(path)
 
 
 def run_id_for(family: str, model: str) -> str:
@@ -261,6 +270,10 @@ def display_name(family: str, model: str) -> str:
         steps = parse_steps(model)
         return f"Diffusion PCA+RVQ-CE {steps} steps" if steps is not None else f"Diffusion PCA+RVQ-CE {model}"
     if family == "direct_pca":
+        if "_l8_" in model:
+            return "Direct PCA regressor (8 layers)"
+        if "_l6_" in model:
+            return "Direct PCA regressor (6 layers)"
         return "Direct PCA regressor"
     names = {
         "grid_render": "Symbolic grid render",
@@ -332,6 +345,9 @@ def load_overall_rows(records: dict[str, RunRecord], repo_root: Path, out_dir: P
     batch_path = canonical_batch_acoustic_dir(out_dir) / "overall_summary.csv"
     if batch_path.is_file():
         load_overall_summary_path(records, repo_root, batch_path, use_batch_aliases=True)
+    capacity_path = out_dir / "overnight" / "matched_baseline_eval" / "acoustic_eval" / "overall_summary.csv"
+    if capacity_path.is_file():
+        load_overall_summary_path(records, repo_root, capacity_path, use_batch_aliases=True)
 
 
 def normalize_metric_row(row: Mapping[str, Any]) -> dict[str, Any]:
@@ -386,6 +402,9 @@ def load_efficiency_rows(records: dict[str, RunRecord], repo_root: Path, out_dir
     batch_path = canonical_batch_acoustic_dir(out_dir) / "efficiency_summary.csv"
     if batch_path.is_file():
         load_efficiency_summary_path(records, repo_root, batch_path, use_batch_aliases=True)
+    capacity_path = out_dir / "overnight" / "matched_baseline_eval" / "acoustic_eval" / "efficiency_summary.csv"
+    if capacity_path.is_file():
+        load_efficiency_summary_path(records, repo_root, capacity_path, use_batch_aliases=True)
 
 
 def load_direct_audio_summary_path(
@@ -429,6 +448,10 @@ def load_direct_audio_eval(records: dict[str, RunRecord], repo_root: Path, out_d
     batch_root = out_dir / CANONICAL_BATCH_EVAL / "direct_audio_eval"
     if batch_root.is_dir():
         for path in sorted(batch_root.glob("*/summary.json")):
+            load_direct_audio_summary_path(records, repo_root, path, use_batch_aliases=True)
+    capacity_root = out_dir / "overnight" / "matched_baseline_eval" / "direct_audio_eval"
+    if capacity_root.is_dir():
+        for path in sorted(capacity_root.glob("*/summary.json")):
             load_direct_audio_summary_path(records, repo_root, path, use_batch_aliases=True)
 
 
@@ -519,10 +542,14 @@ def infer_run_dir(record: RunRecord, repo_root: Path) -> Path | None:
 
 
 def cache_metadata(cache_root: Path) -> dict[str, Any]:
-    out: dict[str, Any] = {"cache_root": str(cache_root)}
+    out: dict[str, Any] = {"cache_root": "<DAC_CACHE_ROOT>"}
     config_path = cache_root / "config.json"
     if config_path.is_file():
         out.update(read_json(config_path))
+        if Path(str(out.get("out_root", ""))).is_absolute():
+            out["out_root"] = "<DAC_CACHE_ROOT>"
+        if Path(str(out.get("source_cache_root", ""))).is_absolute():
+            out["source_cache_root"] = "<SOURCE_CACHE_ROOT>"
     for split in ("train", "validation", "test"):
         summary_path = cache_root / "summaries" / f"{split}.json"
         if summary_path.is_file():

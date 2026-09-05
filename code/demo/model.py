@@ -47,11 +47,7 @@ DEFAULT_AUDIO_MRSTFT_RESOLUTIONS: tuple[tuple[int, int], ...] = (
 DEFAULT_INFERENCE_NUM_BEATS = 4
 DEFAULT_BEAT_CROSSFADE_MS = 10.0
 DEFAULT_TARGET_TOKEN_RATE_HZ = 50.0
-DEFAULT_INFERENCE_GUIDANCE_SCALE = 1.0
 DEFAULT_POSITIONAL_ENCODING = "seconds"
-TIMBRE_NUM_FAMILIES = 8
-TIMBRE_MAX_CLASSES = 5
-TIMBRE_CLASS_VOCAB_SIZES: tuple[int, ...] = (1, 3, 2, 2, 2, 5, 2, 3)
 
 
 
@@ -240,27 +236,6 @@ def _prepare_batch_tensors(
         "target_sum_btd": _tensor("target_sum_btd", torch.float32, required=False),
         "target_valid_mask_bt": _tensor("target_valid_mask_bt", torch.bool, required=require_target),
         "source_codes_bct": _tensor("source_codes_bct", torch.long, required=False),
-        "timbre_bank_latents": _tensor("timbre_bank_latents", torch.float32, required=False),
-        "timbre_bank_family_ids": _tensor("timbre_bank_family_ids", torch.long, required=False),
-        "timbre_bank_class_ids": _tensor("timbre_bank_class_ids", torch.long, required=False),
-        "timbre_bank_velocity": _tensor("timbre_bank_velocity", torch.float32, required=False),
-        "timbre_bank_mask": _tensor("timbre_bank_mask", torch.bool, required=False),
-        "timbre_dynamic_features": _tensor("timbre_dynamic_features", torch.float32, required=False),
-        "timbre_dynamic_mask": _tensor("timbre_dynamic_mask", torch.bool, required=False),
-        "timbre_dynamic_counts": _tensor("timbre_dynamic_counts", torch.float32, required=False),
-        "timbre_family_default_indices": _tensor("timbre_family_default_indices", torch.long, required=False),
-        "timbre_class_token_indices": _tensor("timbre_class_token_indices", torch.long, required=False),
-        "reference_timbre_bank_latents": _tensor("reference_timbre_bank_latents", torch.float32, required=False),
-        "reference_timbre_bank_family_ids": _tensor("reference_timbre_bank_family_ids", torch.long, required=False),
-        "reference_timbre_bank_class_ids": _tensor("reference_timbre_bank_class_ids", torch.long, required=False),
-        "reference_timbre_bank_velocity": _tensor("reference_timbre_bank_velocity", torch.float32, required=False),
-        "reference_timbre_bank_mask": _tensor("reference_timbre_bank_mask", torch.bool, required=False),
-        "reference_timbre_dynamic_features": _tensor("reference_timbre_dynamic_features", torch.float32, required=False),
-        "reference_timbre_dynamic_mask": _tensor("reference_timbre_dynamic_mask", torch.bool, required=False),
-        "reference_timbre_dynamic_counts": _tensor("reference_timbre_dynamic_counts", torch.float32, required=False),
-        "reference_timbre_family_default_indices": _tensor("reference_timbre_family_default_indices", torch.long, required=False),
-        "reference_timbre_class_token_indices": _tensor("reference_timbre_class_token_indices", torch.long, required=False),
-        "reference_segment_pca144": _tensor("reference_segment_pca144", torch.float32, required=False),
         "x0_prior_btd": _tensor("x0_prior_btd", torch.float32, required=False),
     }
 
@@ -699,224 +674,6 @@ class DiffusionTransformerBlock(nn.Module):
         return x
 
 
-class TimbreBankEncoder(nn.Module):
-    def __init__(
-        self,
-        *,
-        latent_dim: int,
-        d_model: int,
-        num_families: int = TIMBRE_NUM_FAMILIES,
-        max_classes: int = TIMBRE_MAX_CLASSES,
-        velocity_bins: int = 8,
-        dropout: float = 0.0,
-        bank_mean: Any = None,
-        bank_std: Any = None,
-    ) -> None:
-        super().__init__()
-        self.num_families = int(num_families)
-        self.max_classes = int(max_classes)
-        self.velocity_bins = int(max(1, int(velocity_bins)))
-        self.latent_proj = nn.Linear(int(latent_dim), int(d_model))
-        self.family_embed = nn.Embedding(int(num_families), int(d_model))
-        self.class_embed = nn.Embedding(int(num_families) * int(max_classes), int(d_model))
-        self.velocity_embed = nn.Embedding(int(self.velocity_bins), int(d_model))
-        self.norm = nn.LayerNorm(int(d_model))
-        self.drop = nn.Dropout(float(dropout))
-        self.register_buffer(
-            "bank_mean",
-            _normalize_stats_vector(
-                bank_mean,
-                x_dim=int(latent_dim),
-                device=torch.device("cpu"),
-                default_fill=0.0,
-                name="bank_mean",
-            ),
-            persistent=True,
-        )
-        self.register_buffer(
-            "bank_std",
-            _normalize_stats_vector(
-                bank_std,
-                x_dim=int(latent_dim),
-                device=torch.device("cpu"),
-                default_fill=1.0,
-                name="bank_std",
-            ).clamp_min(1.0e-6),
-            persistent=True,
-        )
-
-    def forward(
-        self,
-        latents_bsd: torch.Tensor,
-        family_ids_bs: torch.Tensor,
-        class_ids_bs: torch.Tensor,
-        velocity_bs: torch.Tensor | None,
-        mask_bs: torch.Tensor | None,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        latents = torch.as_tensor(latents_bsd, dtype=torch.float32)
-        if int(latents.dim()) != 3:
-            raise ValueError(f"timbre_bank_latents must be [B,S,D], got {tuple(latents.shape)}")
-        latents = (latents - self.bank_mean.to(device=latents.device, dtype=latents.dtype).view(1, 1, -1)) / self.bank_std.to(device=latents.device, dtype=latents.dtype).view(1, 1, -1)
-        family_ids = torch.as_tensor(family_ids_bs, dtype=torch.long, device=latents.device).clamp(
-            min=0,
-            max=int(self.num_families) - 1,
-        )
-        class_ids = torch.as_tensor(class_ids_bs, dtype=torch.long, device=latents.device).clamp(
-            min=0,
-            max=int(self.max_classes) - 1,
-        )
-        if velocity_bs is None:
-            velocity = torch.zeros_like(class_ids, dtype=torch.float32, device=latents.device)
-        else:
-            velocity = torch.as_tensor(velocity_bs, dtype=torch.float32, device=latents.device).clamp(min=0.0, max=1.0)
-        if mask_bs is None:
-            mask = torch.ones(tuple(class_ids.shape), dtype=torch.bool, device=latents.device)
-        else:
-            mask = torch.as_tensor(mask_bs, dtype=torch.bool, device=latents.device)
-        velocity_bins = torch.clamp(
-            torch.floor(velocity * float(max(1, int(self.velocity_bins) - 1))).to(dtype=torch.long),
-            min=0,
-            max=int(self.velocity_bins) - 1,
-        )
-        flat_class_ids = (family_ids * int(self.max_classes)) + class_ids
-        tokens = (
-            self.latent_proj(latents)
-            + self.family_embed(family_ids)
-            + self.class_embed(flat_class_ids)
-            + self.velocity_embed(velocity_bins)
-        )
-        tokens = self.drop(self.norm(tokens))
-        tokens = tokens.masked_fill(~mask[:, :, None], 0.0)
-        return tokens.contiguous(), mask.contiguous()
-
-
-class TimbreDynamicsEncoder(nn.Module):
-    def __init__(
-        self,
-        *,
-        feature_dim: int,
-        d_model: int,
-        num_families: int = TIMBRE_NUM_FAMILIES,
-        max_classes: int = TIMBRE_MAX_CLASSES,
-        velocity_bins: int = 4,
-        dropout: float = 0.0,
-        dynamic_mean: Any = None,
-        dynamic_std: Any = None,
-        dynamic_count_mean: Any = None,
-        dynamic_count_std: Any = None,
-    ) -> None:
-        super().__init__()
-        self.feature_dim = int(feature_dim)
-        self.num_families = int(num_families)
-        self.max_classes = int(max_classes)
-        self.velocity_bins = int(max(1, int(velocity_bins)))
-        self.input_proj = nn.Linear(int(feature_dim) + 1, int(d_model))
-        self.family_embed = nn.Embedding(int(num_families), int(d_model))
-        self.class_embed = nn.Embedding(int(num_families) * int(max_classes), int(d_model))
-        self.velocity_embed = nn.Embedding(int(self.velocity_bins), int(d_model))
-        self.norm = nn.LayerNorm(int(d_model))
-        self.drop = nn.Dropout(float(dropout))
-        self.register_buffer(
-            "dynamic_mean",
-            _normalize_stats_vector(
-                dynamic_mean,
-                x_dim=int(feature_dim),
-                device=torch.device("cpu"),
-                default_fill=0.0,
-                name="dynamic_mean",
-            ),
-            persistent=True,
-        )
-        self.register_buffer(
-            "dynamic_std",
-            _normalize_stats_vector(
-                dynamic_std,
-                x_dim=int(feature_dim),
-                device=torch.device("cpu"),
-                default_fill=1.0,
-                name="dynamic_std",
-            ).clamp_min(1.0e-6),
-            persistent=True,
-        )
-        self.register_buffer(
-            "dynamic_count_mean",
-            _normalize_stats_vector(
-                dynamic_count_mean,
-                x_dim=1,
-                device=torch.device("cpu"),
-                default_fill=0.0,
-                name="dynamic_count_mean",
-            ),
-            persistent=True,
-        )
-        self.register_buffer(
-            "dynamic_count_std",
-            _normalize_stats_vector(
-                dynamic_count_std,
-                x_dim=1,
-                device=torch.device("cpu"),
-                default_fill=1.0,
-                name="dynamic_count_std",
-            ).clamp_min(1.0e-6),
-            persistent=True,
-        )
-
-    def forward(
-        self,
-        features_bsvd: torch.Tensor,
-        family_ids_bs: torch.Tensor,
-        class_ids_bs: torch.Tensor,
-        counts_bsv: torch.Tensor | None,
-        mask_bsv: torch.Tensor | None,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        features = torch.as_tensor(features_bsvd, dtype=torch.float32)
-        if int(features.dim()) != 4 or int(features.shape[-1]) != int(self.feature_dim):
-            raise ValueError(
-                f"timbre_dynamic_features must be [B,S,V,{int(self.feature_dim)}], got {tuple(features.shape)}"
-            )
-        batch_size, slot_count, velocity_bins, _ = tuple(features.shape)
-        if int(velocity_bins) != int(self.velocity_bins):
-            raise ValueError(f"dynamic velocity bins={int(velocity_bins)}, expected {int(self.velocity_bins)}")
-        device = features.device
-        family_ids = torch.as_tensor(family_ids_bs, dtype=torch.long, device=device).clamp(
-            min=0,
-            max=int(self.num_families) - 1,
-        )
-        class_ids = torch.as_tensor(class_ids_bs, dtype=torch.long, device=device).clamp(
-            min=0,
-            max=int(self.max_classes) - 1,
-        )
-        if counts_bsv is None:
-            counts = torch.zeros((batch_size, slot_count, velocity_bins), dtype=torch.float32, device=device)
-        else:
-            counts = torch.as_tensor(counts_bsv, dtype=torch.float32, device=device)
-        if mask_bsv is None:
-            mask = torch.ones((batch_size, slot_count, velocity_bins), dtype=torch.bool, device=device)
-        else:
-            mask = torch.as_tensor(mask_bsv, dtype=torch.bool, device=device)
-        if tuple(family_ids.shape) != (batch_size, slot_count) or tuple(class_ids.shape) != (batch_size, slot_count):
-            raise ValueError("dynamic family/class tensors must be [B,S]")
-        if tuple(counts.shape) != (batch_size, slot_count, velocity_bins) or tuple(mask.shape) != (batch_size, slot_count, velocity_bins):
-            raise ValueError("dynamic count/mask tensors must be [B,S,V]")
-
-        features = (features - self.dynamic_mean.to(device=device, dtype=features.dtype).view(1, 1, 1, -1)) / self.dynamic_std.to(device=device, dtype=features.dtype).view(1, 1, 1, -1)
-        counts = (counts - self.dynamic_count_mean.to(device=device, dtype=features.dtype).view(1, 1, 1)) / self.dynamic_count_std.to(device=device, dtype=features.dtype).view(1, 1, 1)
-        inp = torch.cat([features, counts.unsqueeze(-1)], dim=-1)
-
-        family_exp = family_ids[:, :, None].expand(batch_size, slot_count, velocity_bins)
-        class_exp = class_ids[:, :, None].expand(batch_size, slot_count, velocity_bins)
-        velocity_ids = torch.arange(velocity_bins, dtype=torch.long, device=device).view(1, 1, velocity_bins).expand(batch_size, slot_count, velocity_bins)
-        flat_class_ids = (family_exp * int(self.max_classes)) + class_exp
-        tokens = (
-            self.input_proj(inp)
-            + self.family_embed(family_exp)
-            + self.class_embed(flat_class_ids)
-            + self.velocity_embed(velocity_ids)
-        )
-        tokens = self.drop(self.norm(tokens))
-        return tokens.contiguous(), mask.contiguous()
-
-
 @dataclass
 class DiffusionTransformerConfig:
     x_dim: int = 128
@@ -929,28 +686,6 @@ class DiffusionTransformerConfig:
     num_heads: int = 8
     mlp_ratio: float = 4.0
     dropout: float = 0.1
-    cond_dropout_prob: float = 0.1
-    timbre_conditioning: bool = False
-    timbre_bank_dim: int = 0
-    timbre_num_families: int = TIMBRE_NUM_FAMILIES
-    timbre_max_classes: int = TIMBRE_MAX_CLASSES
-    timbre_velocity_bins: int = 8
-    timbre_dropout_prob: float = 0.0
-    timbre_class_dropout_prob: float = 0.0
-    timbre_bank_mean: Optional[Sequence[float]] = None
-    timbre_bank_std: Optional[Sequence[float]] = None
-    timbre_dynamic_conditioning: bool = False
-    timbre_dynamic_dim: int = 0
-    timbre_dynamic_velocity_bins: int = 4
-    timbre_dynamic_dropout_prob: float = 0.0
-    timbre_dynamic_mean: Optional[Sequence[float]] = None
-    timbre_dynamic_std: Optional[Sequence[float]] = None
-    timbre_dynamic_count_mean: Optional[Sequence[float]] = None
-    timbre_dynamic_count_std: Optional[Sequence[float]] = None
-    reference_conditioning: bool = False
-    reference_source_sampling: str = "random-paired"
-    reference_dropout_prob: float = 0.0
-    reference_segment_dim: int = 144
     x0_prior_conditioning: bool = False
     x0_prior_dim: int = 72
 
@@ -980,68 +715,6 @@ class ConditionalDiffusionTransformer(nn.Module):
 
         self.x_proj = nn.Linear(cfg.x_dim, cfg.d_model)
         self.cond_proj = nn.Linear(cond_dim, cfg.d_model)
-        self.timbre_conditioning = bool(getattr(cfg, "timbre_conditioning", False))
-        self.timbre_encoder: TimbreBankEncoder | None = None
-        self.timbre_to_cond: nn.Linear | None = None
-        if bool(self.timbre_conditioning):
-            timbre_bank_dim = int(getattr(cfg, "timbre_bank_dim", 0) or cfg.x_dim)
-            self.timbre_encoder = TimbreBankEncoder(
-                latent_dim=int(timbre_bank_dim),
-                d_model=int(cfg.d_model),
-                num_families=int(getattr(cfg, "timbre_num_families", TIMBRE_NUM_FAMILIES)),
-                max_classes=int(getattr(cfg, "timbre_max_classes", TIMBRE_MAX_CLASSES)),
-                velocity_bins=int(getattr(cfg, "timbre_velocity_bins", 8)),
-                dropout=float(getattr(cfg, "dropout", 0.0)),
-                bank_mean=getattr(cfg, "timbre_bank_mean", None),
-                bank_std=getattr(cfg, "timbre_bank_std", None),
-            )
-            self.timbre_to_cond = nn.Linear(int(cfg.d_model), int(cond_dim))
-        self.timbre_dynamic_conditioning = bool(getattr(cfg, "timbre_dynamic_conditioning", False))
-        self.timbre_dynamic_encoder: TimbreDynamicsEncoder | None = None
-        self.timbre_dynamic_to_cond: nn.Linear | None = None
-        if bool(self.timbre_dynamic_conditioning):
-            timbre_dynamic_dim = int(getattr(cfg, "timbre_dynamic_dim", 0) or 32)
-            self.timbre_dynamic_encoder = TimbreDynamicsEncoder(
-                feature_dim=int(timbre_dynamic_dim),
-                d_model=int(cfg.d_model),
-                num_families=int(getattr(cfg, "timbre_num_families", TIMBRE_NUM_FAMILIES)),
-                max_classes=int(getattr(cfg, "timbre_max_classes", TIMBRE_MAX_CLASSES)),
-                velocity_bins=int(getattr(cfg, "timbre_dynamic_velocity_bins", 4)),
-                dropout=float(getattr(cfg, "dropout", 0.0)),
-                dynamic_mean=getattr(cfg, "timbre_dynamic_mean", None),
-                dynamic_std=getattr(cfg, "timbre_dynamic_std", None),
-                dynamic_count_mean=getattr(cfg, "timbre_dynamic_count_mean", None),
-                dynamic_count_std=getattr(cfg, "timbre_dynamic_count_std", None),
-            )
-            self.timbre_dynamic_to_cond = nn.Linear(int(cfg.d_model), int(cond_dim))
-        self.reference_conditioning = bool(getattr(cfg, "reference_conditioning", False))
-        self.reference_timbre_pair_to_cond: nn.Linear | None = None
-        self.reference_timbre_to_cond: nn.Linear | None = None
-        self.reference_dynamic_pair_to_cond: nn.Linear | None = None
-        self.reference_dynamic_to_cond: nn.Linear | None = None
-        self.reference_segment_proj: nn.Linear | None = None
-        self.reference_segment_norm: nn.LayerNorm | None = None
-        self.reference_segment_to_cond: nn.Linear | None = None
-        if bool(self.reference_conditioning):
-            self.reference_timbre_pair_to_cond = nn.Linear(int(cfg.d_model) * 3, int(cond_dim))
-            self.reference_timbre_to_cond = nn.Linear(int(cfg.d_model), int(cond_dim))
-            reference_segment_dim = int(getattr(cfg, "reference_segment_dim", 144) or 144)
-            self.reference_segment_proj = nn.Linear(reference_segment_dim, int(cfg.d_model))
-            self.reference_segment_norm = nn.LayerNorm(int(cfg.d_model))
-            self.reference_segment_to_cond = nn.Linear(int(cfg.d_model), int(cond_dim))
-            if bool(self.timbre_dynamic_conditioning):
-                self.reference_dynamic_pair_to_cond = nn.Linear(int(cfg.d_model) * 3, int(cond_dim))
-                self.reference_dynamic_to_cond = nn.Linear(int(cfg.d_model), int(cond_dim))
-            for module in (
-                self.reference_timbre_pair_to_cond,
-                self.reference_timbre_to_cond,
-                self.reference_dynamic_pair_to_cond,
-                self.reference_dynamic_to_cond,
-                self.reference_segment_to_cond,
-            ):
-                if module is not None:
-                    nn.init.zeros_(module.weight)
-                    nn.init.zeros_(module.bias)
         self.x0_prior_conditioning = bool(getattr(cfg, "x0_prior_conditioning", False))
         self.x0_prior_proj: nn.Linear | None = None
         self.x0_prior_norm: nn.LayerNorm | None = None
@@ -1076,391 +749,6 @@ class ConditionalDiffusionTransformer(nn.Module):
         )
         self.out_proj = nn.Linear(cfg.d_model, cfg.x_dim)
 
-    def _batched_timbre_tensor(
-        self,
-        value: torch.Tensor | None,
-        *,
-        batch_size: int,
-        device: torch.device,
-        dtype: torch.dtype | None = None,
-    ) -> torch.Tensor | None:
-        if value is None:
-            return None
-        tensor = torch.as_tensor(value, device=device)
-        if dtype is not None:
-            tensor = tensor.to(dtype=dtype)
-        if int(tensor.dim()) >= 1 and int(tensor.shape[0]) == int(batch_size):
-            return tensor.contiguous()
-        return tensor.unsqueeze(0).expand(int(batch_size), *tuple(tensor.shape)).contiguous()
-
-    def _encode_timbre_tokens(
-        self,
-        *,
-        timbre_bank_latents: torch.Tensor | None,
-        timbre_bank_family_ids: torch.Tensor | None,
-        timbre_bank_class_ids: torch.Tensor | None,
-        timbre_bank_velocity: torch.Tensor | None,
-        timbre_bank_mask: torch.Tensor | None,
-        batch_size: int,
-        device: torch.device,
-    ) -> tuple[torch.Tensor | None, torch.Tensor | None]:
-        if not bool(self.timbre_conditioning):
-            return None, None
-        if self.timbre_encoder is None or self.timbre_to_cond is None:
-            return None, None
-        if timbre_bank_latents is None or timbre_bank_family_ids is None or timbre_bank_class_ids is None:
-            return None, None
-        latents = self._batched_timbre_tensor(
-            timbre_bank_latents,
-            batch_size=batch_size,
-            device=device,
-            dtype=torch.float32,
-        )
-        family_ids = self._batched_timbre_tensor(
-            timbre_bank_family_ids,
-            batch_size=batch_size,
-            device=device,
-            dtype=torch.long,
-        )
-        class_ids = self._batched_timbre_tensor(
-            timbre_bank_class_ids,
-            batch_size=batch_size,
-            device=device,
-            dtype=torch.long,
-        )
-        velocity = self._batched_timbre_tensor(
-            timbre_bank_velocity,
-            batch_size=batch_size,
-            device=device,
-            dtype=torch.float32,
-        )
-        mask = self._batched_timbre_tensor(
-            timbre_bank_mask,
-            batch_size=batch_size,
-            device=device,
-            dtype=torch.bool,
-        )
-        if latents is None or family_ids is None or class_ids is None:
-            return None, None
-        return self.timbre_encoder(latents, family_ids, class_ids, velocity, mask)
-
-    def _encode_timbre_dynamic_tokens(
-        self,
-        *,
-        timbre_dynamic_features: torch.Tensor | None,
-        timbre_dynamic_mask: torch.Tensor | None,
-        timbre_dynamic_counts: torch.Tensor | None,
-        timbre_bank_family_ids: torch.Tensor | None,
-        timbre_bank_class_ids: torch.Tensor | None,
-        batch_size: int,
-        device: torch.device,
-    ) -> tuple[torch.Tensor | None, torch.Tensor | None]:
-        if not bool(self.timbre_dynamic_conditioning):
-            return None, None
-        if self.timbre_dynamic_encoder is None or self.timbre_dynamic_to_cond is None:
-            return None, None
-        if timbre_dynamic_features is None or timbre_bank_family_ids is None or timbre_bank_class_ids is None:
-            return None, None
-        features = self._batched_timbre_tensor(
-            timbre_dynamic_features,
-            batch_size=batch_size,
-            device=device,
-            dtype=torch.float32,
-        )
-        family_ids = self._batched_timbre_tensor(
-            timbre_bank_family_ids,
-            batch_size=batch_size,
-            device=device,
-            dtype=torch.long,
-        )
-        class_ids = self._batched_timbre_tensor(
-            timbre_bank_class_ids,
-            batch_size=batch_size,
-            device=device,
-            dtype=torch.long,
-        )
-        mask = self._batched_timbre_tensor(
-            timbre_dynamic_mask,
-            batch_size=batch_size,
-            device=device,
-            dtype=torch.bool,
-        )
-        counts = self._batched_timbre_tensor(
-            timbre_dynamic_counts,
-            batch_size=batch_size,
-            device=device,
-            dtype=torch.float32,
-        )
-        if features is None or family_ids is None or class_ids is None:
-            return None, None
-        return self.timbre_dynamic_encoder(features, family_ids, class_ids, counts, mask)
-
-    def _encode_reference_segment_token(
-        self,
-        *,
-        reference_segment_pca144: torch.Tensor | None,
-        batch_size: int,
-        device: torch.device,
-    ) -> torch.Tensor | None:
-        if not bool(self.reference_conditioning):
-            return None
-        if self.reference_segment_proj is None or self.reference_segment_norm is None:
-            return None
-        if reference_segment_pca144 is None:
-            return None
-        segment = torch.as_tensor(reference_segment_pca144, dtype=torch.float32, device=device)
-        if int(segment.dim()) == 1:
-            segment = segment.view(1, -1).expand(int(batch_size), -1)
-        elif int(segment.dim()) == 2 and int(segment.shape[0]) == int(batch_size):
-            segment = segment.contiguous()
-        else:
-            raise ValueError(f"reference_segment_pca144 must be [D] or [B,D], got {tuple(segment.shape)}")
-        expected_dim = int(self.reference_segment_proj.in_features)
-        if int(segment.shape[-1]) != expected_dim:
-            raise ValueError(f"reference_segment_pca144 must be [B,{expected_dim}], got {tuple(segment.shape)}")
-        return self.reference_segment_norm(self.reference_segment_proj(segment)).contiguous()
-
-    def _reference_drop_mask(self, *, batch_size: int, device: torch.device) -> torch.Tensor | None:
-        prob = float(getattr(self.cfg, "reference_dropout_prob", 0.0))
-        if not self.training or prob <= 0.0:
-            return None
-        drop = torch.rand(int(batch_size), device=device) < prob
-        return drop if bool(drop.any()) else None
-
-    @staticmethod
-    def _adapter_has_nonzero_weights(module: nn.Linear | None) -> bool:
-        if module is None:
-            return False
-        with torch.no_grad():
-            total = module.weight.detach().abs().sum()
-            if module.bias is not None:
-                total = total + module.bias.detach().abs().sum()
-        return bool(float(total.cpu().item()) > 0.0)
-
-    @staticmethod
-    def _propagate_family_onset_metadata(
-        *,
-        family_ids_t: torch.Tensor,
-        onset_t: torch.Tensor,
-        activity_t: torch.Tensor,
-        fallback_velocity_t: torch.Tensor | None = None,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Carry onset-only class/velocity metadata across the active hit tail."""
-        activity = torch.as_tensor(activity_t, dtype=torch.float32)
-        device = activity.device
-        ids = torch.as_tensor(family_ids_t, dtype=torch.long, device=device)
-        onset = torch.as_tensor(onset_t, dtype=torch.float32, device=device).clamp(min=0.0, max=1.0)
-        if fallback_velocity_t is None:
-            fallback_velocity = activity.clamp(min=0.0, max=1.0)
-        else:
-            fallback_velocity = torch.as_tensor(
-                fallback_velocity_t,
-                dtype=torch.float32,
-                device=device,
-            ).clamp(min=0.0, max=1.0)
-        frame_idx = torch.arange(int(activity.shape[0]), device=device, dtype=torch.long)
-        active = activity > 0.0
-        metadata_source = active & (ids >= 0)
-        source_velocity = torch.where(onset > 0.0, onset, fallback_velocity)
-        last_metadata_pos = torch.cummax(
-            torch.where(metadata_source, frame_idx, torch.full_like(frame_idx, -1)),
-            dim=0,
-        ).values
-        last_inactive_pos = torch.cummax(
-            torch.where(~active, frame_idx, torch.full_like(frame_idx, -1)),
-            dim=0,
-        ).values
-        valid = active & (last_metadata_pos >= 0) & (last_metadata_pos > last_inactive_pos)
-        safe_pos = last_metadata_pos.clamp_min(0)
-        class_ids = torch.where(valid, ids[safe_pos], torch.full_like(ids, -1))
-        onset_velocity = torch.where(valid, source_velocity[safe_pos], torch.zeros_like(activity))
-        return class_ids, onset_velocity, valid
-
-    def _time_aligned_timbre_tokens(
-        self,
-        *,
-        timbre_tokens_bsd: torch.Tensor,
-        timbre_mask_bs: torch.Tensor,
-        grid: torch.Tensor,
-        grid_ids: Optional[torch.Tensor],
-        grid_times_sec: torch.Tensor,
-        token_times_sec: torch.Tensor,
-        grid_valid_mask_bt: Optional[torch.Tensor],
-        target_valid_mask_bt: torch.Tensor,
-        timbre_family_default_indices: torch.Tensor | None,
-        timbre_class_token_indices: torch.Tensor | None,
-    ) -> torch.Tensor:
-        batch_size, target_len = int(target_valid_mask_bt.shape[0]), int(target_valid_mask_bt.shape[1])
-        family_count = int(min(TIMBRE_NUM_FAMILIES, int(grid.shape[1]) // 3 if int(grid.shape[1]) >= TIMBRE_NUM_FAMILIES * 3 else int(grid.shape[1])))
-        if family_count <= 0:
-            return timbre_tokens_bsd.new_zeros((batch_size, target_len, int(timbre_tokens_bsd.shape[-1])))
-        if grid_ids is None:
-            ids = torch.zeros((batch_size, family_count, int(grid.shape[-1])), dtype=torch.long, device=grid.device)
-        else:
-            ids = torch.as_tensor(grid_ids[:, :family_count, :], dtype=torch.long, device=grid.device)
-        if timbre_family_default_indices is None or timbre_class_token_indices is None:
-            return timbre_tokens_bsd.new_zeros((batch_size, target_len, int(timbre_tokens_bsd.shape[-1])))
-        default_indices = self._batched_timbre_tensor(
-            timbre_family_default_indices,
-            batch_size=batch_size,
-            device=grid.device,
-            dtype=torch.long,
-        )
-        class_indices = self._batched_timbre_tensor(
-            timbre_class_token_indices,
-            batch_size=batch_size,
-            device=grid.device,
-            dtype=torch.long,
-        )
-        if default_indices is None or class_indices is None:
-            return timbre_tokens_bsd.new_zeros((batch_size, target_len, int(timbre_tokens_bsd.shape[-1])))
-        out = timbre_tokens_bsd.new_zeros((batch_size, target_len, int(timbre_tokens_bsd.shape[-1])))
-        denom = timbre_tokens_bsd.new_zeros((batch_size, target_len, 1))
-        for batch_idx in range(batch_size):
-            grid_valid_len = int(grid.shape[-1])
-            if grid_valid_mask_bt is not None:
-                grid_valid_len = int(torch.as_tensor(grid_valid_mask_bt[batch_idx], dtype=torch.bool).sum().item())
-            grid_valid_len = max(1, min(grid_valid_len, int(grid.shape[-1])))
-            distances = (
-                token_times_sec[batch_idx, :, None].to(device=grid.device, dtype=torch.float32)
-                - grid_times_sec[batch_idx, :grid_valid_len][None, :].to(device=grid.device, dtype=torch.float32)
-            ).abs()
-            nearest = distances.argmin(dim=1)
-            for family_idx in range(family_count):
-                if int(grid.shape[1]) >= TIMBRE_NUM_FAMILIES * 3:
-                    state = grid[batch_idx, family_idx * 3 + 0, :grid_valid_len].abs()
-                    onset = grid[batch_idx, family_idx * 3 + 1, :grid_valid_len].abs()
-                    count = (grid[batch_idx, family_idx * 3 + 2, :grid_valid_len] > 0).to(dtype=torch.float32)
-                    activity_grid = torch.maximum(torch.maximum(state, onset), count)
-                    fallback_velocity_grid = state
-                else:
-                    activity_grid = grid[batch_idx, family_idx, :grid_valid_len].abs()
-                    onset = activity_grid
-                    fallback_velocity_grid = activity_grid
-                class_id_grid, _onset_velocity_grid, metadata_valid_grid = self._propagate_family_onset_metadata(
-                    family_ids_t=ids[batch_idx, family_idx, :grid_valid_len],
-                    onset_t=onset,
-                    activity_t=activity_grid,
-                    fallback_velocity_t=fallback_velocity_grid,
-                )
-                activity = activity_grid[nearest]
-                metadata_valid = metadata_valid_grid[nearest]
-                if not bool(((activity > 0.0) & metadata_valid).any()):
-                    continue
-                class_id_t = class_id_grid[nearest].clamp(min=0, max=int(class_indices.shape[-1]) - 1)
-                exact = class_indices[batch_idx, family_idx, class_id_t]
-                fallback = default_indices[batch_idx, family_idx].expand_as(exact)
-                token_idx = torch.where(exact >= 0, exact, fallback).clamp(min=0, max=int(timbre_tokens_bsd.shape[1]) - 1)
-                token_ok = timbre_mask_bs[batch_idx, token_idx].to(dtype=torch.bool)
-                active = (activity > 0.0) & metadata_valid & token_ok
-                if not bool(active.any()):
-                    continue
-                gathered = timbre_tokens_bsd[batch_idx, token_idx]
-                weight = activity.to(dtype=timbre_tokens_bsd.dtype).view(target_len, 1) * active.to(dtype=timbre_tokens_bsd.dtype).view(target_len, 1)
-                out[batch_idx] = out[batch_idx] + (gathered * weight)
-                denom[batch_idx] = denom[batch_idx] + weight
-        active_mask = denom > 0.0
-        out = out / denom.clamp_min(1.0e-8)
-        out = out.masked_fill(~active_mask, 0.0)
-        out = out.masked_fill(~target_valid_mask_bt[:, :, None].to(device=out.device, dtype=torch.bool), 0.0)
-        return out.contiguous()
-
-    def _time_aligned_timbre_dynamic_tokens(
-        self,
-        *,
-        timbre_dynamic_tokens_bsvd: torch.Tensor,
-        timbre_dynamic_mask_bsv: torch.Tensor,
-        grid: torch.Tensor,
-        grid_ids: Optional[torch.Tensor],
-        grid_times_sec: torch.Tensor,
-        token_times_sec: torch.Tensor,
-        grid_valid_mask_bt: Optional[torch.Tensor],
-        target_valid_mask_bt: torch.Tensor,
-        timbre_family_default_indices: torch.Tensor | None,
-        timbre_class_token_indices: torch.Tensor | None,
-    ) -> torch.Tensor:
-        batch_size, target_len = int(target_valid_mask_bt.shape[0]), int(target_valid_mask_bt.shape[1])
-        family_count = int(min(TIMBRE_NUM_FAMILIES, int(grid.shape[1]) // 3 if int(grid.shape[1]) >= TIMBRE_NUM_FAMILIES * 3 else int(grid.shape[1])))
-        if family_count <= 0:
-            return timbre_dynamic_tokens_bsvd.new_zeros((batch_size, target_len, int(timbre_dynamic_tokens_bsvd.shape[-1])))
-        if grid_ids is None:
-            ids = torch.zeros((batch_size, family_count, int(grid.shape[-1])), dtype=torch.long, device=grid.device)
-        else:
-            ids = torch.as_tensor(grid_ids[:, :family_count, :], dtype=torch.long, device=grid.device)
-        if timbre_family_default_indices is None or timbre_class_token_indices is None:
-            return timbre_dynamic_tokens_bsvd.new_zeros((batch_size, target_len, int(timbre_dynamic_tokens_bsvd.shape[-1])))
-        default_indices = self._batched_timbre_tensor(
-            timbre_family_default_indices,
-            batch_size=batch_size,
-            device=grid.device,
-            dtype=torch.long,
-        )
-        class_indices = self._batched_timbre_tensor(
-            timbre_class_token_indices,
-            batch_size=batch_size,
-            device=grid.device,
-            dtype=torch.long,
-        )
-        if default_indices is None or class_indices is None:
-            return timbre_dynamic_tokens_bsvd.new_zeros((batch_size, target_len, int(timbre_dynamic_tokens_bsvd.shape[-1])))
-        velocity_bins = int(timbre_dynamic_tokens_bsvd.shape[2])
-        out = timbre_dynamic_tokens_bsvd.new_zeros((batch_size, target_len, int(timbre_dynamic_tokens_bsvd.shape[-1])))
-        denom = timbre_dynamic_tokens_bsvd.new_zeros((batch_size, target_len, 1))
-        for batch_idx in range(batch_size):
-            grid_valid_len = int(grid.shape[-1])
-            if grid_valid_mask_bt is not None:
-                grid_valid_len = int(torch.as_tensor(grid_valid_mask_bt[batch_idx], dtype=torch.bool).sum().item())
-            grid_valid_len = max(1, min(grid_valid_len, int(grid.shape[-1])))
-            distances = (
-                token_times_sec[batch_idx, :, None].to(device=grid.device, dtype=torch.float32)
-                - grid_times_sec[batch_idx, :grid_valid_len][None, :].to(device=grid.device, dtype=torch.float32)
-            ).abs()
-            nearest = distances.argmin(dim=1)
-            for family_idx in range(family_count):
-                if int(grid.shape[1]) >= TIMBRE_NUM_FAMILIES * 3:
-                    state = grid[batch_idx, family_idx * 3 + 0, :grid_valid_len].abs()
-                    onset = grid[batch_idx, family_idx * 3 + 1, :grid_valid_len].abs()
-                    count = (grid[batch_idx, family_idx * 3 + 2, :grid_valid_len] > 0).to(dtype=torch.float32)
-                    activity_grid = torch.maximum(torch.maximum(state, onset), count)
-                    fallback_velocity_grid = state
-                else:
-                    activity_grid = grid[batch_idx, family_idx, :grid_valid_len].abs()
-                    onset = activity_grid
-                    fallback_velocity_grid = activity_grid
-                class_id_grid, velocity_grid, metadata_valid_grid = self._propagate_family_onset_metadata(
-                    family_ids_t=ids[batch_idx, family_idx, :grid_valid_len],
-                    onset_t=onset,
-                    activity_t=activity_grid,
-                    fallback_velocity_t=fallback_velocity_grid,
-                )
-                activity = activity_grid[nearest]
-                metadata_valid = metadata_valid_grid[nearest]
-                if not bool(((activity > 0.0) & metadata_valid).any()):
-                    continue
-                velocity_t = velocity_grid[nearest]
-                dynamic_bin = torch.clamp(
-                    torch.floor(velocity_t * float(velocity_bins)).to(dtype=torch.long),
-                    min=0,
-                    max=int(velocity_bins) - 1,
-                )
-                class_id_t = class_id_grid[nearest].clamp(min=0, max=int(class_indices.shape[-1]) - 1)
-                exact = class_indices[batch_idx, family_idx, class_id_t]
-                fallback = default_indices[batch_idx, family_idx].expand_as(exact)
-                token_idx = torch.where(exact >= 0, exact, fallback).clamp(min=0, max=int(timbre_dynamic_tokens_bsvd.shape[1]) - 1)
-                token_ok = timbre_dynamic_mask_bsv[batch_idx].any(dim=-1)[token_idx].to(dtype=torch.bool)
-                active = (activity > 0.0) & metadata_valid & token_ok
-                if not bool(active.any()):
-                    continue
-                gathered = timbre_dynamic_tokens_bsvd[batch_idx, token_idx, dynamic_bin]
-                weight = activity.to(dtype=timbre_dynamic_tokens_bsvd.dtype).view(target_len, 1) * active.to(dtype=timbre_dynamic_tokens_bsvd.dtype).view(target_len, 1)
-                out[batch_idx] = out[batch_idx] + (gathered * weight)
-                denom[batch_idx] = denom[batch_idx] + weight
-        active_mask = denom > 0.0
-        out = out / denom.clamp_min(1.0e-8)
-        out = out.masked_fill(~active_mask, 0.0)
-        out = out.masked_fill(~target_valid_mask_bt[:, :, None].to(device=out.device, dtype=torch.bool), 0.0)
-        return out.contiguous()
-
     def encode_conditioning(
         self,
         *,
@@ -1470,27 +758,6 @@ class ConditionalDiffusionTransformer(nn.Module):
         token_times_sec: torch.Tensor,
         target_valid_mask_bt: torch.Tensor,
         grid_valid_mask_bt: Optional[torch.Tensor] = None,
-        timbre_bank_latents: torch.Tensor | None = None,
-        timbre_bank_family_ids: torch.Tensor | None = None,
-        timbre_bank_class_ids: torch.Tensor | None = None,
-        timbre_bank_velocity: torch.Tensor | None = None,
-        timbre_bank_mask: torch.Tensor | None = None,
-        timbre_dynamic_features: torch.Tensor | None = None,
-        timbre_dynamic_mask: torch.Tensor | None = None,
-        timbre_dynamic_counts: torch.Tensor | None = None,
-        timbre_family_default_indices: torch.Tensor | None = None,
-        timbre_class_token_indices: torch.Tensor | None = None,
-        reference_timbre_bank_latents: torch.Tensor | None = None,
-        reference_timbre_bank_family_ids: torch.Tensor | None = None,
-        reference_timbre_bank_class_ids: torch.Tensor | None = None,
-        reference_timbre_bank_velocity: torch.Tensor | None = None,
-        reference_timbre_bank_mask: torch.Tensor | None = None,
-        reference_timbre_dynamic_features: torch.Tensor | None = None,
-        reference_timbre_dynamic_mask: torch.Tensor | None = None,
-        reference_timbre_dynamic_counts: torch.Tensor | None = None,
-        reference_timbre_family_default_indices: torch.Tensor | None = None,
-        reference_timbre_class_token_indices: torch.Tensor | None = None,
-        reference_segment_pca144: torch.Tensor | None = None,
         x0_prior_btd: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         frontend_kwargs = {
@@ -1503,24 +770,24 @@ class ConditionalDiffusionTransformer(nn.Module):
         if bool(self.concat_multiscale_frontend):
             scale_features = {
                 int(scale_radius): scale_feat
-                for scale_radius, scale_feat in dict(self.summary_frontend.forward_multiscale(grid, **frontend_kwargs)).items()
+                for scale_radius, scale_feat in dict(
+                    self.summary_frontend.forward_multiscale(grid, **frontend_kwargs)
+                ).items()
             }
             cond_btd = torch.cat(
-                [scale_features[int(scale_radius)] for scale_radius in list(self.frontend_scale_radii)],
+                [
+                    scale_features[int(scale_radius)]
+                    for scale_radius in list(self.frontend_scale_radii)
+                ],
                 dim=-1,
             ).contiguous()
         else:
-            cond_btd = self.summary_frontend(
-                grid,
-                **frontend_kwargs,
-            )
+            cond_btd = self.summary_frontend(grid, **frontend_kwargs)
+
         cond_valid_mask_bt = target_valid_mask_bt.to(dtype=torch.bool)
         cond_btd = apply_seq_mask(cond_btd, cond_valid_mask_bt)
         target_len = int(target_valid_mask_bt.shape[1])
         batch_size = int(grid.shape[0])
-        target_aligned_timbre: torch.Tensor | None = None
-        target_aligned_dynamic: torch.Tensor | None = None
-        reference_drop = self._reference_drop_mask(batch_size=batch_size, device=grid.device)
         if (
             bool(self.x0_prior_conditioning)
             and x0_prior_btd is not None
@@ -1532,10 +799,14 @@ class ConditionalDiffusionTransformer(nn.Module):
             if int(prior.dim()) != 3:
                 raise ValueError(f"x0_prior_btd must be [B,T,D], got {tuple(prior.shape)}")
             if int(prior.shape[0]) != int(batch_size):
-                raise ValueError(f"x0_prior_btd batch must be {batch_size}, got {tuple(prior.shape)}")
+                raise ValueError(
+                    f"x0_prior_btd batch must be {batch_size}, got {tuple(prior.shape)}"
+                )
             expected_dim = int(self.x0_prior_proj.in_features)
             if int(prior.shape[-1]) != expected_dim:
-                raise ValueError(f"x0_prior_btd last dim must be {expected_dim}, got {tuple(prior.shape)}")
+                raise ValueError(
+                    f"x0_prior_btd last dim must be {expected_dim}, got {tuple(prior.shape)}"
+                )
             if int(prior.shape[1]) != int(target_len):
                 prior = F.interpolate(
                     prior.transpose(1, 2),
@@ -1543,214 +814,10 @@ class ConditionalDiffusionTransformer(nn.Module):
                     mode="linear",
                     align_corners=False,
                 ).transpose(1, 2).contiguous()
-            prior = apply_seq_mask(prior, target_valid_mask_bt.to(dtype=torch.bool))
-            prior_cond = self.x0_prior_to_cond(self.x0_prior_norm(self.x0_prior_proj(prior)))
-            cond_btd = cond_btd + prior_cond
-        timbre_tokens, timbre_mask = self._encode_timbre_tokens(
-            timbre_bank_latents=timbre_bank_latents,
-            timbre_bank_family_ids=timbre_bank_family_ids,
-            timbre_bank_class_ids=timbre_bank_class_ids,
-            timbre_bank_velocity=timbre_bank_velocity,
-            timbre_bank_mask=timbre_bank_mask,
-            batch_size=batch_size,
-            device=grid.device,
-        )
-        if timbre_tokens is not None and timbre_mask is not None and self.timbre_to_cond is not None:
-            if self.training and float(getattr(self.cfg, "timbre_dropout_prob", 0.0)) > 0.0:
-                drop = torch.rand(int(grid.shape[0]), device=grid.device) < float(getattr(self.cfg, "timbre_dropout_prob", 0.0))
-                if bool(drop.any()):
-                    timbre_tokens = timbre_tokens.clone()
-                    timbre_tokens[drop] = 0.0
-                    timbre_mask = timbre_mask.clone()
-                    timbre_mask[drop] = False
-            aligned = self._time_aligned_timbre_tokens(
-                timbre_tokens_bsd=timbre_tokens,
-                timbre_mask_bs=timbre_mask,
-                grid=grid,
-                grid_ids=grid_ids,
-                grid_times_sec=grid_times_sec,
-                token_times_sec=token_times_sec,
-                grid_valid_mask_bt=grid_valid_mask_bt,
-                target_valid_mask_bt=target_valid_mask_bt,
-                timbre_family_default_indices=timbre_family_default_indices,
-                timbre_class_token_indices=timbre_class_token_indices,
+            prior = apply_seq_mask(prior, cond_valid_mask_bt)
+            cond_btd = cond_btd + self.x0_prior_to_cond(
+                self.x0_prior_norm(self.x0_prior_proj(prior))
             )
-            target_aligned_timbre = aligned
-            cond_btd = cond_btd + self.timbre_to_cond(aligned)
-            bank_cond = self.timbre_to_cond(timbre_tokens)
-            cond_btd = torch.cat([cond_btd, bank_cond], dim=1).contiguous()
-            cond_valid_mask_bt = torch.cat([cond_valid_mask_bt, timbre_mask.to(dtype=torch.bool)], dim=1).contiguous()
-        reference_tokens, reference_mask = self._encode_timbre_tokens(
-            timbre_bank_latents=reference_timbre_bank_latents,
-            timbre_bank_family_ids=reference_timbre_bank_family_ids,
-            timbre_bank_class_ids=reference_timbre_bank_class_ids,
-            timbre_bank_velocity=reference_timbre_bank_velocity,
-            timbre_bank_mask=reference_timbre_bank_mask,
-            batch_size=batch_size,
-            device=grid.device,
-        )
-        if (
-            bool(self.reference_conditioning)
-            and reference_tokens is not None
-            and reference_mask is not None
-            and self.reference_timbre_pair_to_cond is not None
-            and self.reference_timbre_to_cond is not None
-        ):
-            if reference_drop is not None:
-                reference_tokens = reference_tokens.clone()
-                reference_mask = reference_mask.clone()
-                reference_tokens[reference_drop] = 0.0
-                reference_mask[reference_drop] = False
-            aligned_reference = self._time_aligned_timbre_tokens(
-                timbre_tokens_bsd=reference_tokens,
-                timbre_mask_bs=reference_mask,
-                grid=grid,
-                grid_ids=grid_ids,
-                grid_times_sec=grid_times_sec,
-                token_times_sec=token_times_sec,
-                grid_valid_mask_bt=grid_valid_mask_bt,
-                target_valid_mask_bt=target_valid_mask_bt,
-                timbre_family_default_indices=reference_timbre_family_default_indices,
-                timbre_class_token_indices=reference_timbre_class_token_indices,
-            )
-            target_for_delta = (
-                target_aligned_timbre
-                if target_aligned_timbre is not None
-                else torch.zeros_like(aligned_reference)
-            )
-            pair = torch.cat(
-                [target_for_delta, aligned_reference, target_for_delta - aligned_reference],
-                dim=-1,
-            )
-            cond_btd = torch.cat(
-                [cond_btd[:, :target_len] + self.reference_timbre_pair_to_cond(pair), cond_btd[:, target_len:]],
-                dim=1,
-            ).contiguous()
-            if self._adapter_has_nonzero_weights(self.reference_timbre_pair_to_cond):
-                reference_cond = self.reference_timbre_to_cond(reference_tokens)
-                cond_btd = torch.cat([cond_btd, reference_cond], dim=1).contiguous()
-                cond_valid_mask_bt = torch.cat([cond_valid_mask_bt, reference_mask.to(dtype=torch.bool)], dim=1).contiguous()
-        reference_segment = self._encode_reference_segment_token(
-            reference_segment_pca144=reference_segment_pca144,
-            batch_size=batch_size,
-            device=grid.device,
-        )
-        if (
-            reference_segment is not None
-            and self.reference_segment_to_cond is not None
-            and bool(self.reference_conditioning)
-        ):
-            if reference_drop is not None:
-                reference_segment = reference_segment.clone()
-                reference_segment[reference_drop] = 0.0
-            segment_cond = self.reference_segment_to_cond(reference_segment).unsqueeze(1)
-            cond_btd = torch.cat(
-                [cond_btd[:, :target_len] + segment_cond, cond_btd[:, target_len:]],
-                dim=1,
-            ).contiguous()
-        dynamic_tokens, dynamic_mask = self._encode_timbre_dynamic_tokens(
-            timbre_dynamic_features=timbre_dynamic_features,
-            timbre_dynamic_mask=timbre_dynamic_mask,
-            timbre_dynamic_counts=timbre_dynamic_counts,
-            timbre_bank_family_ids=timbre_bank_family_ids,
-            timbre_bank_class_ids=timbre_bank_class_ids,
-            batch_size=batch_size,
-            device=grid.device,
-        )
-        if dynamic_tokens is not None and dynamic_mask is not None and self.timbre_dynamic_to_cond is not None:
-            if self.training and float(getattr(self.cfg, "timbre_dynamic_dropout_prob", 0.0)) > 0.0:
-                drop = torch.rand(int(grid.shape[0]), device=grid.device) < float(getattr(self.cfg, "timbre_dynamic_dropout_prob", 0.0))
-                if bool(drop.any()):
-                    dynamic_tokens = dynamic_tokens.clone()
-                    dynamic_tokens[drop] = 0.0
-                    dynamic_mask = dynamic_mask.clone()
-                    dynamic_mask[drop] = False
-            aligned_dynamic = self._time_aligned_timbre_dynamic_tokens(
-                timbre_dynamic_tokens_bsvd=dynamic_tokens,
-                timbre_dynamic_mask_bsv=dynamic_mask,
-                grid=grid,
-                grid_ids=grid_ids,
-                grid_times_sec=grid_times_sec,
-                token_times_sec=token_times_sec,
-                grid_valid_mask_bt=grid_valid_mask_bt,
-                target_valid_mask_bt=target_valid_mask_bt,
-                timbre_family_default_indices=timbre_family_default_indices,
-                timbre_class_token_indices=timbre_class_token_indices,
-            )
-            target_aligned_dynamic = aligned_dynamic
-            dynamic_aligned_cond = self.timbre_dynamic_to_cond(aligned_dynamic)
-            cond_btd = torch.cat(
-                [cond_btd[:, :target_len] + dynamic_aligned_cond, cond_btd[:, target_len:]],
-                dim=1,
-            ).contiguous()
-            dynamic_flat = dynamic_tokens.reshape(int(dynamic_tokens.shape[0]), -1, int(dynamic_tokens.shape[-1]))
-            dynamic_mask_flat = dynamic_mask.reshape(int(dynamic_mask.shape[0]), -1)
-            dynamic_cond = self.timbre_dynamic_to_cond(dynamic_flat)
-            cond_btd = torch.cat([cond_btd, dynamic_cond], dim=1).contiguous()
-            cond_valid_mask_bt = torch.cat([cond_valid_mask_bt, dynamic_mask_flat.to(dtype=torch.bool)], dim=1).contiguous()
-        reference_dynamic_tokens, reference_dynamic_mask = self._encode_timbre_dynamic_tokens(
-            timbre_dynamic_features=reference_timbre_dynamic_features,
-            timbre_dynamic_mask=reference_timbre_dynamic_mask,
-            timbre_dynamic_counts=reference_timbre_dynamic_counts,
-            timbre_bank_family_ids=reference_timbre_bank_family_ids,
-            timbre_bank_class_ids=reference_timbre_bank_class_ids,
-            batch_size=batch_size,
-            device=grid.device,
-        )
-        if (
-            bool(self.reference_conditioning)
-            and reference_dynamic_tokens is not None
-            and reference_dynamic_mask is not None
-            and self.reference_dynamic_pair_to_cond is not None
-            and self.reference_dynamic_to_cond is not None
-        ):
-            if reference_drop is not None:
-                reference_dynamic_tokens = reference_dynamic_tokens.clone()
-                reference_dynamic_mask = reference_dynamic_mask.clone()
-                reference_dynamic_tokens[reference_drop] = 0.0
-                reference_dynamic_mask[reference_drop] = False
-            aligned_reference_dynamic = self._time_aligned_timbre_dynamic_tokens(
-                timbre_dynamic_tokens_bsvd=reference_dynamic_tokens,
-                timbre_dynamic_mask_bsv=reference_dynamic_mask,
-                grid=grid,
-                grid_ids=grid_ids,
-                grid_times_sec=grid_times_sec,
-                token_times_sec=token_times_sec,
-                grid_valid_mask_bt=grid_valid_mask_bt,
-                target_valid_mask_bt=target_valid_mask_bt,
-                timbre_family_default_indices=reference_timbre_family_default_indices,
-                timbre_class_token_indices=reference_timbre_class_token_indices,
-            )
-            target_dynamic_for_delta = (
-                target_aligned_dynamic
-                if target_aligned_dynamic is not None
-                else torch.zeros_like(aligned_reference_dynamic)
-            )
-            dynamic_pair = torch.cat(
-                [
-                    target_dynamic_for_delta,
-                    aligned_reference_dynamic,
-                    target_dynamic_for_delta - aligned_reference_dynamic,
-                ],
-                dim=-1,
-            )
-            cond_btd = torch.cat(
-                [cond_btd[:, :target_len] + self.reference_dynamic_pair_to_cond(dynamic_pair), cond_btd[:, target_len:]],
-                dim=1,
-            ).contiguous()
-            if self._adapter_has_nonzero_weights(self.reference_dynamic_pair_to_cond):
-                reference_dynamic_flat = reference_dynamic_tokens.reshape(
-                    int(reference_dynamic_tokens.shape[0]),
-                    -1,
-                    int(reference_dynamic_tokens.shape[-1]),
-                )
-                reference_dynamic_mask_flat = reference_dynamic_mask.reshape(int(reference_dynamic_mask.shape[0]), -1)
-                reference_dynamic_cond = self.reference_dynamic_to_cond(reference_dynamic_flat)
-                cond_btd = torch.cat([cond_btd, reference_dynamic_cond], dim=1).contiguous()
-                cond_valid_mask_bt = torch.cat(
-                    [cond_valid_mask_bt, reference_dynamic_mask_flat.to(dtype=torch.bool)],
-                    dim=1,
-                ).contiguous()
         return cond_btd.contiguous(), cond_valid_mask_bt.contiguous()
 
     def forward(
@@ -1770,28 +837,6 @@ class ConditionalDiffusionTransformer(nn.Module):
         duration_sec: Optional[torch.Tensor] = None,
         cond_btd: Optional[torch.Tensor] = None,
         cond_valid_mask_bt: Optional[torch.Tensor] = None,
-        force_uncond: bool = False,
-        timbre_bank_latents: torch.Tensor | None = None,
-        timbre_bank_family_ids: torch.Tensor | None = None,
-        timbre_bank_class_ids: torch.Tensor | None = None,
-        timbre_bank_velocity: torch.Tensor | None = None,
-        timbre_bank_mask: torch.Tensor | None = None,
-        timbre_dynamic_features: torch.Tensor | None = None,
-        timbre_dynamic_mask: torch.Tensor | None = None,
-        timbre_dynamic_counts: torch.Tensor | None = None,
-        timbre_family_default_indices: torch.Tensor | None = None,
-        timbre_class_token_indices: torch.Tensor | None = None,
-        reference_timbre_bank_latents: torch.Tensor | None = None,
-        reference_timbre_bank_family_ids: torch.Tensor | None = None,
-        reference_timbre_bank_class_ids: torch.Tensor | None = None,
-        reference_timbre_bank_velocity: torch.Tensor | None = None,
-        reference_timbre_bank_mask: torch.Tensor | None = None,
-        reference_timbre_dynamic_features: torch.Tensor | None = None,
-        reference_timbre_dynamic_mask: torch.Tensor | None = None,
-        reference_timbre_dynamic_counts: torch.Tensor | None = None,
-        reference_timbre_family_default_indices: torch.Tensor | None = None,
-        reference_timbre_class_token_indices: torch.Tensor | None = None,
-        reference_segment_pca144: torch.Tensor | None = None,
         x0_prior_btd: torch.Tensor | None = None,
     ) -> torch.Tensor:
         del beat_boundaries_sec, beat_boundaries_valid_mask, bpm, duration_sec
@@ -1817,27 +862,6 @@ class ConditionalDiffusionTransformer(nn.Module):
                 token_times_sec=token_times_sec,
                 target_valid_mask_bt=target_valid_mask_bt,
                 grid_valid_mask_bt=grid_valid_mask_bt,
-                timbre_bank_latents=timbre_bank_latents,
-                timbre_bank_family_ids=timbre_bank_family_ids,
-                timbre_bank_class_ids=timbre_bank_class_ids,
-                timbre_bank_velocity=timbre_bank_velocity,
-                timbre_bank_mask=timbre_bank_mask,
-                timbre_dynamic_features=timbre_dynamic_features,
-                timbre_dynamic_mask=timbre_dynamic_mask,
-                timbre_dynamic_counts=timbre_dynamic_counts,
-                timbre_family_default_indices=timbre_family_default_indices,
-                timbre_class_token_indices=timbre_class_token_indices,
-                reference_timbre_bank_latents=reference_timbre_bank_latents,
-                reference_timbre_bank_family_ids=reference_timbre_bank_family_ids,
-                reference_timbre_bank_class_ids=reference_timbre_bank_class_ids,
-                reference_timbre_bank_velocity=reference_timbre_bank_velocity,
-                reference_timbre_bank_mask=reference_timbre_bank_mask,
-                reference_timbre_dynamic_features=reference_timbre_dynamic_features,
-                reference_timbre_dynamic_mask=reference_timbre_dynamic_mask,
-                reference_timbre_dynamic_counts=reference_timbre_dynamic_counts,
-                reference_timbre_family_default_indices=reference_timbre_family_default_indices,
-                reference_timbre_class_token_indices=reference_timbre_class_token_indices,
-                reference_segment_pca144=reference_segment_pca144,
                 x0_prior_btd=x0_prior_btd,
             )
 
@@ -1845,15 +869,6 @@ class ConditionalDiffusionTransformer(nn.Module):
             raise ValueError(
                 f"conditioning batch must align with target_valid_mask_bt, got {tuple(cond_btd.shape)} / {tuple(cond_valid_mask_bt.shape)} / {tuple(target_valid_mask_bt.shape)}"
             )
-
-        if self.training and self.cfg.cond_dropout_prob > 0.0:
-            drop_mask_b = (torch.rand(bsz, device=device) < self.cfg.cond_dropout_prob)
-            if drop_mask_b.any():
-                cond_btd = cond_btd.clone()
-                cond_btd[drop_mask_b] = 0
-
-        if force_uncond:
-            cond_btd = torch.zeros_like(cond_btd)
 
         if self.positional_encoding == "seconds" and token_times_sec is not None:
             token_pos = sinusoidal_time_positions(
@@ -2163,29 +1178,6 @@ def _masked_token_mean(
     return (per_token * weights).sum() / weights.sum().clamp_min(1.0e-8)
 
 
-def _resolve_timbre_projection(
-    timbre_projection: torch.Tensor | None,
-    *,
-    x_dim: int,
-    device: torch.device,
-    dtype: torch.dtype,
-) -> torch.Tensor | None:
-    if timbre_projection is None:
-        return None
-    projection = torch.as_tensor(timbre_projection, dtype=dtype, device=device).detach()
-    if int(projection.dim()) == 1:
-        projection = projection.view(1, -1)
-    if int(projection.dim()) != 2:
-        raise ValueError(f"timbre_projection must be [K,{x_dim}], got {tuple(projection.shape)}")
-    if int(projection.shape[1]) != int(x_dim):
-        raise ValueError(f"timbre_projection must have {x_dim} columns, got {tuple(projection.shape)}")
-    if int(projection.shape[0]) <= 0:
-        raise ValueError("timbre_projection must contain at least one row")
-    if not bool(torch.isfinite(projection).all()):
-        raise ValueError("timbre_projection contains non-finite values")
-    return projection.contiguous()
-
-
 def _resolve_codebook_embeddings(
     quant_codebook_embed_ckd: torch.Tensor | None,
     *,
@@ -2346,9 +1338,7 @@ def diffusion_train_step(
     audio_mrstft_weight: float = DEFAULT_AUDIO_MRSTFT_WEIGHT,
     audio_mrstft_resolutions: Sequence[tuple[int, int]] = DEFAULT_AUDIO_MRSTFT_RESOLUTIONS,
     x0_clip_norm: float | None = DEFAULT_SAMPLE_X0_CLIP_NORM,
-    timbre_projection: torch.Tensor | None = None,
     x0_mse_weight: float = 0.0,
-    timbre_proj_mse_weight: float = 0.0,
     quant_embed_mse_weight: float = 0.0,
     rvq_ce_weight: float = 0.0,
     quant_codebook_embed_ckd: torch.Tensor | None = None,
@@ -2414,27 +1404,6 @@ def diffusion_train_step(
         beat_boundaries_valid_mask=prepared["beat_boundaries_valid_mask"],
         bpm=prepared["bpm"],
         duration_sec=prepared["duration_sec"],
-        timbre_bank_latents=prepared.get("timbre_bank_latents"),
-        timbre_bank_family_ids=prepared.get("timbre_bank_family_ids"),
-        timbre_bank_class_ids=prepared.get("timbre_bank_class_ids"),
-        timbre_bank_velocity=prepared.get("timbre_bank_velocity"),
-        timbre_bank_mask=prepared.get("timbre_bank_mask"),
-        timbre_dynamic_features=prepared.get("timbre_dynamic_features"),
-        timbre_dynamic_mask=prepared.get("timbre_dynamic_mask"),
-        timbre_dynamic_counts=prepared.get("timbre_dynamic_counts"),
-        timbre_family_default_indices=prepared.get("timbre_family_default_indices"),
-        timbre_class_token_indices=prepared.get("timbre_class_token_indices"),
-        reference_timbre_bank_latents=prepared.get("reference_timbre_bank_latents"),
-        reference_timbre_bank_family_ids=prepared.get("reference_timbre_bank_family_ids"),
-        reference_timbre_bank_class_ids=prepared.get("reference_timbre_bank_class_ids"),
-        reference_timbre_bank_velocity=prepared.get("reference_timbre_bank_velocity"),
-        reference_timbre_bank_mask=prepared.get("reference_timbre_bank_mask"),
-        reference_timbre_dynamic_features=prepared.get("reference_timbre_dynamic_features"),
-        reference_timbre_dynamic_mask=prepared.get("reference_timbre_dynamic_mask"),
-        reference_timbre_dynamic_counts=prepared.get("reference_timbre_dynamic_counts"),
-        reference_timbre_family_default_indices=prepared.get("reference_timbre_family_default_indices"),
-        reference_timbre_class_token_indices=prepared.get("reference_timbre_class_token_indices"),
-        reference_segment_pca144=prepared.get("reference_segment_pca144"),
         x0_prior_btd=x0_prior,
     )
 
@@ -2447,18 +1416,16 @@ def diffusion_train_step(
 
     loss = diffusion_loss
     x0_loss = x0_hat.new_zeros(())
-    timbre_proj_mse = x0_hat.new_zeros(())
     quant_embed_mse = x0_hat.new_zeros(())
     rvq_ce = x0_hat.new_zeros(())
     onset_weighted_x0 = x0_hat.new_zeros(())
     per_tok_x0 = ((x0_hat - target) ** 2).mean(dim=-1)
     use_x0_loss = float(x0_mse_weight) > 0.0
-    use_timbre_proj_loss = float(timbre_proj_mse_weight) > 0.0
     use_quant_embed_loss = float(quant_embed_mse_weight) > 0.0
     use_rvq_ce_loss = float(rvq_ce_weight) > 0.0
     token_weights = None
     if bool(onset_loss_weighting) and (
-        use_x0_loss or use_timbre_proj_loss or use_quant_embed_loss or use_rvq_ce_loss
+        use_x0_loss or use_quant_embed_loss or use_rvq_ce_loss
     ):
         token_weights = _build_onset_token_weights(
             prepared,
@@ -2471,20 +1438,6 @@ def diffusion_train_step(
         x0_loss = _masked_token_mean(per_tok_x0, target_mask, None)
         x0_objective = onset_weighted_x0 if token_weights is not None else x0_loss
         loss = loss + (float(x0_mse_weight) * x0_objective)
-
-    if use_timbre_proj_loss:
-        projection = _resolve_timbre_projection(
-            timbre_projection,
-            x_dim=int(x0_hat.shape[-1]),
-            device=x0_hat.device,
-            dtype=x0_hat.dtype,
-        )
-        if projection is None:
-            raise ValueError("timbre_projection is required when timbre_proj_mse_weight > 0")
-        projected_error = torch.matmul(x0_hat - target, projection.transpose(0, 1))
-        per_tok_proj = projected_error.square().sum(dim=-1)
-        timbre_proj_mse = _masked_token_mean(per_tok_proj, target_mask, token_weights)
-        loss = loss + (float(timbre_proj_mse_weight) * timbre_proj_mse)
 
     pred_latent_raw: torch.Tensor | None = None
     pred_codec_latent_raw: torch.Tensor | None = None
@@ -2623,7 +1576,6 @@ def diffusion_train_step(
         "audio_wave_l1": audio_wave_l1,
         "audio_mrstft": audio_mrstft,
         "x0_loss": x0_loss,
-        "timbre_proj_mse": timbre_proj_mse,
         "quant_embed_mse": quant_embed_mse,
         "rvq_ce": rvq_ce,
         "onset_weighted_x0": onset_weighted_x0,
@@ -2638,7 +1590,6 @@ def sample_ddpm(
     diffusion: GaussianDiffusion1D,
     batch: Mapping[str, Any],
     device: torch.device,
-    guidance_scale: float = 1.0,
     x0_clip_norm: float | None = DEFAULT_SAMPLE_X0_CLIP_NORM,
     sample_idx: int | None = None,
     start_noise: torch.Tensor | None = None,
@@ -2687,27 +1638,6 @@ def sample_ddpm(
         token_times_sec=geometry["token_times_sec"],
         target_valid_mask_bt=target_mask,
         grid_valid_mask_bt=grid_valid_mask,
-        timbre_bank_latents=prepared.get("timbre_bank_latents"),
-        timbre_bank_family_ids=prepared.get("timbre_bank_family_ids"),
-        timbre_bank_class_ids=prepared.get("timbre_bank_class_ids"),
-        timbre_bank_velocity=prepared.get("timbre_bank_velocity"),
-        timbre_bank_mask=prepared.get("timbre_bank_mask"),
-        timbre_dynamic_features=prepared.get("timbre_dynamic_features"),
-        timbre_dynamic_mask=prepared.get("timbre_dynamic_mask"),
-        timbre_dynamic_counts=prepared.get("timbre_dynamic_counts"),
-        timbre_family_default_indices=prepared.get("timbre_family_default_indices"),
-        timbre_class_token_indices=prepared.get("timbre_class_token_indices"),
-        reference_timbre_bank_latents=prepared.get("reference_timbre_bank_latents"),
-        reference_timbre_bank_family_ids=prepared.get("reference_timbre_bank_family_ids"),
-        reference_timbre_bank_class_ids=prepared.get("reference_timbre_bank_class_ids"),
-        reference_timbre_bank_velocity=prepared.get("reference_timbre_bank_velocity"),
-        reference_timbre_bank_mask=prepared.get("reference_timbre_bank_mask"),
-        reference_timbre_dynamic_features=prepared.get("reference_timbre_dynamic_features"),
-        reference_timbre_dynamic_mask=prepared.get("reference_timbre_dynamic_mask"),
-        reference_timbre_dynamic_counts=prepared.get("reference_timbre_dynamic_counts"),
-        reference_timbre_family_default_indices=prepared.get("reference_timbre_family_default_indices"),
-        reference_timbre_class_token_indices=prepared.get("reference_timbre_class_token_indices"),
-        reference_segment_pca144=prepared.get("reference_segment_pca144"),
     )
 
     batch_size = int(target_mask.shape[0])
@@ -2734,36 +1664,14 @@ def sample_ddpm(
 
     for step in reversed(range(diffusion.num_steps)):
         t = torch.full((batch_size,), step, device=device, dtype=torch.long)
-        if float(guidance_scale) == 1.0:
-            eps = model(
-                x_t=x,
-                t=t,
-                target_valid_mask_bt=target_mask,
-                token_times_sec=geometry["token_times_sec"],
-                cond_btd=cond_btd,
-                cond_valid_mask_bt=cond_valid_mask_bt,
-                force_uncond=False,
-            )
-        else:
-            eps_cond = model(
-                x_t=x,
-                t=t,
-                target_valid_mask_bt=target_mask,
-                token_times_sec=geometry["token_times_sec"],
-                cond_btd=cond_btd,
-                cond_valid_mask_bt=cond_valid_mask_bt,
-                force_uncond=False,
-            )
-            eps_uncond = model(
-                x_t=x,
-                t=t,
-                target_valid_mask_bt=target_mask,
-                token_times_sec=geometry["token_times_sec"],
-                cond_btd=cond_btd,
-                cond_valid_mask_bt=cond_valid_mask_bt,
-                force_uncond=True,
-            )
-            eps = eps_uncond + guidance_scale * (eps_cond - eps_uncond)
+        eps = model(
+            x_t=x,
+            t=t,
+            target_valid_mask_bt=target_mask,
+            token_times_sec=geometry["token_times_sec"],
+            cond_btd=cond_btd,
+            cond_valid_mask_bt=cond_valid_mask_bt,
+        )
         x0_hat = diffusion.predict_x0_from_eps(x, t, eps)
         if x0_clip_norm is not None:
             x0_hat = x0_hat.clamp(min=-float(x0_clip_norm), max=float(x0_clip_norm))
@@ -2972,27 +1880,6 @@ def save_eval_plot_multi_t(
         token_times_sec=single["token_times_sec"],
         target_valid_mask_bt=target_mask_i,
         grid_valid_mask_bt=single["grid_valid_mask"],
-        timbre_bank_latents=single.get("timbre_bank_latents"),
-        timbre_bank_family_ids=single.get("timbre_bank_family_ids"),
-        timbre_bank_class_ids=single.get("timbre_bank_class_ids"),
-        timbre_bank_velocity=single.get("timbre_bank_velocity"),
-        timbre_bank_mask=single.get("timbre_bank_mask"),
-        timbre_dynamic_features=single.get("timbre_dynamic_features"),
-        timbre_dynamic_mask=single.get("timbre_dynamic_mask"),
-        timbre_dynamic_counts=single.get("timbre_dynamic_counts"),
-        timbre_family_default_indices=single.get("timbre_family_default_indices"),
-        timbre_class_token_indices=single.get("timbre_class_token_indices"),
-        reference_timbre_bank_latents=single.get("reference_timbre_bank_latents"),
-        reference_timbre_bank_family_ids=single.get("reference_timbre_bank_family_ids"),
-        reference_timbre_bank_class_ids=single.get("reference_timbre_bank_class_ids"),
-        reference_timbre_bank_velocity=single.get("reference_timbre_bank_velocity"),
-        reference_timbre_bank_mask=single.get("reference_timbre_bank_mask"),
-        reference_timbre_dynamic_features=single.get("reference_timbre_dynamic_features"),
-        reference_timbre_dynamic_mask=single.get("reference_timbre_dynamic_mask"),
-        reference_timbre_dynamic_counts=single.get("reference_timbre_dynamic_counts"),
-        reference_timbre_family_default_indices=single.get("reference_timbre_family_default_indices"),
-        reference_timbre_class_token_indices=single.get("reference_timbre_class_token_indices"),
-        reference_segment_pca144=single.get("reference_segment_pca144"),
     )
 
     valid_len = int(target_mask_i[0].sum().item())
@@ -3202,7 +2089,6 @@ def save_inference_wav(
     sample_rate=None,
     out_dir="best_samples",
     sample_idx=0,
-    guidance_scale=1.0,
     start_noise=None,
     step_noises: Mapping[int, torch.Tensor] | None = None,
     x0_clip_norm: float | None = DEFAULT_SAMPLE_X0_CLIP_NORM,
@@ -3220,7 +2106,6 @@ def save_inference_wav(
         batch=batch,
         device=device,
         sample_idx=sample_idx,
-        guidance_scale=guidance_scale,
         start_noise=start_noise,
         step_noises=step_noises,
         x0_clip_norm=x0_clip_norm,
@@ -3286,27 +2171,6 @@ def save_inference_wav(
             token_times_sec=geometry["token_times_sec"],
             target_valid_mask_bt=target_mask_single,
             grid_valid_mask_bt=single["grid_valid_mask"],
-            timbre_bank_latents=single.get("timbre_bank_latents"),
-            timbre_bank_family_ids=single.get("timbre_bank_family_ids"),
-            timbre_bank_class_ids=single.get("timbre_bank_class_ids"),
-            timbre_bank_velocity=single.get("timbre_bank_velocity"),
-            timbre_bank_mask=single.get("timbre_bank_mask"),
-            timbre_dynamic_features=single.get("timbre_dynamic_features"),
-            timbre_dynamic_mask=single.get("timbre_dynamic_mask"),
-            timbre_dynamic_counts=single.get("timbre_dynamic_counts"),
-            timbre_family_default_indices=single.get("timbre_family_default_indices"),
-            timbre_class_token_indices=single.get("timbre_class_token_indices"),
-            reference_timbre_bank_latents=single.get("reference_timbre_bank_latents"),
-            reference_timbre_bank_family_ids=single.get("reference_timbre_bank_family_ids"),
-            reference_timbre_bank_class_ids=single.get("reference_timbre_bank_class_ids"),
-            reference_timbre_bank_velocity=single.get("reference_timbre_bank_velocity"),
-            reference_timbre_bank_mask=single.get("reference_timbre_bank_mask"),
-            reference_timbre_dynamic_features=single.get("reference_timbre_dynamic_features"),
-            reference_timbre_dynamic_mask=single.get("reference_timbre_dynamic_mask"),
-            reference_timbre_dynamic_counts=single.get("reference_timbre_dynamic_counts"),
-            reference_timbre_family_default_indices=single.get("reference_timbre_family_default_indices"),
-            reference_timbre_class_token_indices=single.get("reference_timbre_class_token_indices"),
-            reference_segment_pca144=single.get("reference_segment_pca144"),
         )
 
         source_codes = torch.as_tensor(batch["source_codes_bct"][int(sample_idx) : int(sample_idx) + 1], dtype=torch.long, device=device)

@@ -70,7 +70,6 @@ from data.sketch_render import DEFAULT_GRID_FRAME_RATE, build_diffusion_batch_fr
 from io_utils import save_audio, write_json
 from model import (
     DEFAULT_BEAT_CROSSFADE_MS,
-    DEFAULT_INFERENCE_GUIDANCE_SCALE,
     DEFAULT_INFERENCE_NUM_BEATS,
     DEFAULT_SAMPLE_X0_CLIP_NORM,
     ConditionalDiffusionTransformer,
@@ -104,7 +103,6 @@ except ModuleNotFoundError as exc:
 from sketch_expander import SketchExpander, SketchExpanderConfig, decode_event_plan
 
 
-DEFAULT_SKETCH_GUIDANCE_SCALE = DEFAULT_INFERENCE_GUIDANCE_SCALE
 
 
 def _parse_args() -> argparse.Namespace:
@@ -142,7 +140,6 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--fill-length", type=float, default=None)
     parser.add_argument("--tom-direction", type=str, choices=TOM_DIRECTION_VALUES, default=None)
     parser.add_argument("--fill-accent-shape", type=str, choices=FILL_ACCENT_SHAPE_VALUES, default=None)
-    parser.add_argument("--guidance-scale", type=float, default=DEFAULT_SKETCH_GUIDANCE_SCALE)
     parser.add_argument("--x0-clip-norm", type=float, default=DEFAULT_SAMPLE_X0_CLIP_NORM)
     parser.add_argument("--num-beats", type=int, default=DEFAULT_INFERENCE_NUM_BEATS)
     parser.add_argument("--target-token-rate-hz", type=float, default=0.0)
@@ -419,7 +416,6 @@ def main() -> None:
                     name: float(controls[idx].item())
                     for idx, name in enumerate(sketch_model.cfg.control_names)
                 },
-            "guidance_scale": float(args.guidance_scale),
             "sample_seed": int(args.seed),
             "num_events": int(len(event_batches[0])),
                 "grid_num_frames": int(batch["grid_num_frames_b"][0].item()),
@@ -487,7 +483,6 @@ def main() -> None:
             diffusion=diffusion,
             batch=batch,
             device=device,
-            guidance_scale=float(args.guidance_scale),
             sample_seed=int(args.seed),
             x0_clip_norm=float(args.x0_clip_norm) if args.x0_clip_norm is not None else None,
             use_bpm_inference_geometry=True,
@@ -549,7 +544,6 @@ def main() -> None:
             "target_num_frames": int(target_frames),
             "target_token_rate_hz": float(target_token_rate_hz),
             "effective_token_rate_hz": float(target_token_rate_hz),
-            "guidance_scale": float(args.guidance_scale),
             "sample_seed": int(args.seed),
             "codec_hop_length": resolve_codec_hop_length(codec_metadata),
             "requested_duration_sec": float(requested_duration_sec),

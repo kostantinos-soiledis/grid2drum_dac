@@ -1,0 +1,2 @@
+model,style,mel_mae_db,onset_flux_cosine,band_balance_l1,num_examples
+direct_pca_d1024_l8_seed1234,,12.899903765731786,0.821577157851565,0.20023110425377502,1733

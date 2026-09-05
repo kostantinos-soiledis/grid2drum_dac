@@ -932,7 +932,6 @@ class DirectRegressorConfig:
     num_heads: int = 8
     mlp_ratio: float = 4.0
     dropout: float = 0.1
-    cond_dropout_prob: float = 0.0
 
 
 class ResidualSequenceConvBlock(nn.Module):
@@ -1067,11 +1066,6 @@ class DirectPCASequenceRegressor(nn.Module):
             target_valid_mask_bt=target_valid_mask_bt,
             grid_valid_mask_bt=grid_valid_mask_bt,
         )
-        if self.training and float(self.cfg.cond_dropout_prob) > 0.0:
-            drop_b = torch.rand(int(cond.shape[0]), device=cond.device) < float(self.cfg.cond_dropout_prob)
-            if bool(drop_b.any()):
-                cond = cond.clone()
-                cond[drop_b] = 0.0
         x = self.cond_proj(cond)
         if self.positional_encoding == "seconds":
             pos = sinusoidal_time_positions(token_times_sec.to(device=x.device), int(self.cfg.d_model), rate_hz=float(self.cfg.positional_rate_hz))

@@ -1,0 +1,2 @@
+model,pred_low_ratio,pred_mid_ratio,pred_high_ratio
+direct_pca_d1024_l8_seed1234,0.7599025154110115,0.1077248976699728,0.1323725874883961

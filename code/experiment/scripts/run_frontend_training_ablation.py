@@ -148,7 +148,6 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--dac25-num-layers", type=int, default=6)
     parser.add_argument("--dac25-num-heads", type=int, default=8)
     parser.add_argument("--sample-seed", type=int, default=1234)
-    parser.add_argument("--guidance-scale", type=float, default=1.0)
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
@@ -362,8 +361,6 @@ def _export_cmd(args: argparse.Namespace, variant: FrontendVariant, run_dir: Pat
             str(run_dir),
             "--batch-size",
             str(int(args.dac25_eval_batch_size)),
-            "--guidance-scale",
-            str(float(args.guidance_scale)),
             "--sample-seed",
             str(int(args.sample_seed)),
             *common,

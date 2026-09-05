@@ -1,0 +1,14 @@
+{
+  "audio_l1_mean": 0.0001580627178698803,
+  "audio_l1_median": 6.527562800329179e-05,
+  "cache_root": "<PCA_DIFFUSION_ROOT>/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+  "metric_basis": "export_peak_normalized_audio",
+  "mrstft_logmag_l1_mean": 0.0008291275757959769,
+  "mrstft_logmag_l1_median": 0.0005659236339852214,
+  "num_examples": 1733,
+  "out_dir": "<PCA_DIFFUSION_ROOT>/paper_results/full_acoustic_eval/direct_audio_eval/source_code_decode",
+  "predictions_dir": "<PCA_DIFFUSION_ROOT>/runs_baselines/dac_test_v1/source_code_decode",
+  "resolved_device": "cuda:0",
+  "sample_rate": 44100,
+  "split": "test"
+}

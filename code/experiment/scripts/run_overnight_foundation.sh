@@ -109,7 +109,7 @@ for spec in "${SWEEP_MODELS[@]}"; do
       log "export $mname seed=$s steps=$steps -> $od"
       "$PY" scripts/export_best_diffusion_predictions.py \
         --train-dir "$tdir" --split test --out-dir "$od" \
-        --num-steps "$steps" --guidance-scale 1.0 --x0-clip-norm 6.0 \
+        --num-steps "$steps" --x0-clip-norm 6.0 \
         --num-beats 4 --beat-crossfade-ms 10 --use-bpm-inference-geometry \
         --sample-seed "$s" --cache-root "$CACHE" --max-items "$MAX_ITEMS" \
         --batch-size "$EXPORT_BS" --num-workers 4 --device "$DEVICE" --overwrite \
