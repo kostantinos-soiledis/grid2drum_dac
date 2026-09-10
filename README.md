@@ -18,6 +18,22 @@ Qualitative comparison against the direct PCA-regressor baseline:
 
 ![Qualitative spectrogram comparison](figures/spectrogram_comparison.png)
 
+What the model is conditioned on, for one test excerpt:
+
+![Grid conditioning for one excerpt](figures/conditioning.png)
+
+From top to bottom:
+
+1. the 24 numeric family-state lanes (state velocity, onset velocity and onset
+   count per family);
+2. the per-family articulation IDs (−1 = no onset);
+3. the paired DAC-decoded waveform, with detected beat boundaries in red;
+4. the 256-D conditioning sequence the denoiser actually receives: the
+   concatenated output of the four frontend branches (radii 0, 22, 41, 55),
+   z-scored per row for display.
+
+The grid details are described next.
+
 ## Drum grid representation
 
 The model is conditioned on a MIDI-derived grid rendered at **250 Hz** over each
