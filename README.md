@@ -10,17 +10,13 @@ Source: [github.com/kostantinos-soiledis/grid2drum_dac](https://github.com/kosta
 
 ![Model overview: training (top) and inference (bottom)](figures/semantic_pca_dac_diffusion_story_cropped.png)
 
-What the model is conditioned on, for one test excerpt:
-
-![Grid conditioning for one excerpt](figures/conditioning.png)
-
 **Training (top):** target audio is encoded by a frozen [DAC](https://github.com/descriptinc/descript-audio-codec) codec (9 RVQ codebooks); the summed codebook embeddings are projected to a normalized 72-dim PCA latent sequence. A trainable multiscale frontend turns the drum grid into a conditioning sequence, and a shared DiT denoiser is trained with noise-prediction MSE (optionally with RVQ-codebook regularization).
 
 **Inference (bottom):** the user-requested drum grid goes through the frontend, reverse diffusion sampling starts from noise guided by that conditioning, and the predicted PCA latent is de-normalized, inverse-projected back to 1024 dims, and decoded to 44.1 kHz audio by the frozen DAC decoder.
 
-Qualitative comparison against the direct PCA-regressor baseline:
+What the model is conditioned on, for one test excerpt:
 
-![Qualitative spectrogram comparison](figures/spectrogram_comparison.png)
+![Grid conditioning for one excerpt](figures/conditioning.png)
 
 From top to bottom:
 
@@ -132,6 +128,12 @@ The grid-rate ablation decimates this 250 Hz grid when it is loaded
 - velocities take the maximum over each group of frames;
 - counts are summed;
 - the articulation ID comes from the loudest onset in the group.
+
+
+Qualitative comparison against the direct PCA-regressor baseline:
+
+![Qualitative spectrogram comparison](figures/spectrogram_comparison.png)
+
 
 ## Using the repo
 
