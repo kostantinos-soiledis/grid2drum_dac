@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
+import json
 import shutil
 import sys
 import time
@@ -121,6 +123,16 @@ def _parse_args() -> argparse.Namespace:
         default=-1,
         help="Optional base seed for DDPM sampling; batch index is added so exported batches use distinct noise.",
     )
+    parser.add_argument(
+        "--grid-rate-hz",
+        type=float,
+        default=-1.0,
+        help=(
+            "Conditioning-grid rate for inference. Defaults to the training run's grid_rate_hz "
+            "(from the run config) so decimated-grid runs export on the grid they were trained on; "
+            "pass 0 for the cache's native rate."
+        ),
+    )
     parser.add_argument("--x0-clip-norm", type=float, default=DEFAULT_SAMPLE_X0_CLIP_NORM)
     parser.add_argument("--num-steps", type=int, default=400)
     parser.add_argument("--num-beats", type=int, default=DEFAULT_INFERENCE_NUM_BEATS)
@@ -228,6 +240,22 @@ def _load_inference_state(
     if not isinstance(model_state, dict):
         raise KeyError(f"checkpoint is missing model_state_dict: {checkpoint_path}")
 
+    # Checkpoints predating the current DiffusionTransformerConfig carry retired
+    # fields (e.g. cond_dropout_prob). Drop them so older runs stay evaluable, but
+    # only when they are inert -- a non-default value changed behaviour we cannot
+    # reproduce, so refuse rather than silently score a different model.
+    known_fields = {field.name for field in dataclasses.fields(DiffusionTransformerConfig)}
+    retired = {key: config_payload.pop(key) for key in list(config_payload) if key not in known_fields}
+    inert_retired_defaults = {"cond_dropout_prob": 0.0}
+    for key, value in sorted(retired.items()):
+        expected = inert_retired_defaults.get(key, None)
+        if expected is None or float(value) != float(expected):
+            raise ValueError(
+                f"checkpoint {checkpoint_path} sets retired config field {key}={value!r}, "
+                "which the current model cannot reproduce; re-train or add explicit support"
+            )
+        print(f"[warn] dropping inert retired config field {key}={value!r} from {checkpoint_path}")
+
     cfg = DiffusionTransformerConfig(**config_payload)
     model = ConditionalDiffusionTransformer(cfg).to(device).eval()
     model.load_state_dict(model_state)
@@ -240,6 +268,24 @@ def _load_inference_state(
     return model, diffusion, target_mean.contiguous(), target_std.contiguous(), payload
 
 
+def _resolve_grid_rate_hz(train_dir: Path, requested: float) -> float:
+    """Inference grid rate: the CLI value when given, else the training run's."""
+    if float(requested) >= 0.0:
+        return float(requested)
+    for name in ("config.json", "run_config.json"):
+        config_path = train_dir / name
+        if not config_path.is_file():
+            continue
+        try:
+            with config_path.open("r", encoding="utf-8") as handle:
+                config = json.load(handle)
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(config, dict) and config.get("grid_rate_hz") is not None:
+            return float(max(0.0, float(config["grid_rate_hz"])))
+    return 0.0
+
+
 def main() -> None:
     args = _parse_args()
 
@@ -249,6 +295,7 @@ def main() -> None:
     conditioning_ablation = normalize_conditioning_ablation(str(args.conditioning_ablation))
     checkpoint_path = _resolve_checkpoint_path(train_dir, str(args.checkpoint))
     out_dir = _resolve_out_dir(train_dir, split, str(args.out_dir), conditioning_ablation)
+    grid_rate_hz = _resolve_grid_rate_hz(train_dir, float(args.grid_rate_hz))
 
     available_splits = _available_splits(cache_root)
     split_manifest = cache_root / "manifests" / f"{split}.jsonl"
@@ -324,6 +371,7 @@ def main() -> None:
         num_workers=int(args.num_workers),
         max_items=int(args.max_items),
         pin_memory=pin_memory,
+        grid_rate_hz=float(grid_rate_hz),
     )
 
     manifest_rows: list[dict[str, Any]] = []
@@ -463,6 +511,7 @@ def main() -> None:
         "device_name": _device_name(device),
         "sample_rate": int(sample_rate),
         "num_steps": int(checkpoint_payload["resolved_num_steps"]),
+        "grid_rate_hz": float(grid_rate_hz),
         "checkpoint_epoch": int(checkpoint_payload.get("epoch", -1)),
         "best_val_loss": (
             float(checkpoint_payload["best_val_loss"])

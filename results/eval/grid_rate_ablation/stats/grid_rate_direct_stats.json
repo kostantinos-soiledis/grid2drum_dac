@@ -1,0 +1,136 @@
+{
+  "per_clip_csv": "results/eval/grid_rate_ablation/direct_audio_eval/*/per_clip_metrics.csv (merged per model)",
+  "cluster_col": "source_id",
+  "reps": 5000,
+  "seed": 1234,
+  "available_models": [
+    "grid120hz_25steps",
+    "grid250hz_25steps",
+    "grid90hz_25steps"
+  ],
+  "pairs": {
+    "grid90hz_25steps:grid250hz_25steps": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "audio_l1": {
+          "mean_diff": 0.00266947188407647,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            0.0017324310883533574,
+            0.0034589507766589257
+          ],
+          "clustered_ci95": [
+            0.0008376313116167202,
+            0.004672328833021155
+          ],
+          "ci_width_inflation": 2.221056352486697,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.004599080183963208,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "mrstft_logmag_l1": {
+          "mean_diff": 0.006938101796877226,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            0.006050475599272182,
+            0.00783617867872149
+          ],
+          "clustered_ci95": [
+            0.003756746852599685,
+            0.011340434362912473
+          ],
+          "ci_width_inflation": 4.2468916571793764,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "grid120hz_25steps:grid250hz_25steps": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "audio_l1": {
+          "mean_diff": 0.002309835463250674,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            0.0013890047961377377,
+            0.003109623901118764
+          ],
+          "clustered_ci95": [
+            0.0005715665299727657,
+            0.004137944665845368
+          ],
+          "ci_width_inflation": 2.0727295922428626,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.010997800439912017,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "mrstft_logmag_l1": {
+          "mean_diff": 0.003581272237716523,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            0.0030312565575174844,
+            0.004116827729725065
+          ],
+          "clustered_ci95": [
+            0.002654865139981428,
+            0.004366987790980675
+          ],
+          "ci_width_inflation": 1.5771629671387943,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "grid90hz_25steps:grid120hz_25steps": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "audio_l1": {
+          "mean_diff": 0.0003596364208257962,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -4.829351081681076e-05,
+            0.0007603074939608726
+          ],
+          "clustered_ci95": [
+            -0.0001726270248022643,
+            0.0009074635283601594
+          ],
+          "ci_width_inflation": 1.335752177873417,
+          "naive_signflip_p": 0.08418316336732654,
+          "clustered_signflip_p": 0.21455708858228353,
+          "naive_resolved": false,
+          "clustered_resolved": false
+        },
+        "mrstft_logmag_l1": {
+          "mean_diff": 0.003356829559160703,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            0.0025586410789963866,
+            0.004204784113208699
+          ],
+          "clustered_ci95": [
+            0.00038819071891289266,
+            0.007332865827434997
+          ],
+          "ci_width_inflation": 4.218755578457474,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.021195760847830435,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    }
+  }
+}

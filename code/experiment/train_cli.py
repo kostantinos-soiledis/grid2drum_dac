@@ -398,6 +398,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--onset-loss-weighting", action="store_true")
     parser.add_argument("--onset-token-radius", type=int, default=1)
     parser.add_argument(
+        "--grid-rate-hz",
+        type=float,
+        default=0.0,
+        help="Decimate the cached drum grid to this rate at load time (0 = use cached rate).",
+    )
+    parser.add_argument(
         "--use-bpm-training-geometry",
         action="store_true",
         help=(
@@ -571,6 +577,7 @@ def main() -> None:
             shuffle=True,
             num_workers=int(args.num_workers),
             max_items=int(args.max_train_items),
+            grid_rate_hz=float(args.grid_rate_hz),
             pin_memory=pin_memory_enabled,
             persistent_workers=bool(persistent_workers),
             multiprocessing_context=dataloader_mp_context,
@@ -584,6 +591,7 @@ def main() -> None:
             shuffle=False,
             num_workers=int(args.num_workers),
             max_items=int(args.max_val_items),
+            grid_rate_hz=float(args.grid_rate_hz),
             pin_memory=pin_memory_enabled,
             persistent_workers=bool(persistent_workers),
             multiprocessing_context=dataloader_mp_context,
@@ -794,6 +802,7 @@ def main() -> None:
         ),
         "onset_loss_weighting": bool(args.onset_loss_weighting),
         "onset_token_radius": int(args.onset_token_radius),
+        "grid_rate_hz": float(args.grid_rate_hz),
         "fixed_sample_epochs": [int(epoch) for epoch in fixed_sample_epochs],
         "checkpoint_metric_name": str(checkpoint_metric_name),
         "sample_rate": int(sample_rate),

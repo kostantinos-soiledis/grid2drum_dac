@@ -57,6 +57,9 @@ class DiffusionExample:
         return self.target_sum_pool_d
 
 
+from data.grid_rate_downsample import downsample_grid_payload, uniform_grid_times
+
+
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as handle:
@@ -85,6 +88,7 @@ class DiffusionConditioningDataset(Dataset[DiffusionExample]):
         split: str = "train",
         max_items: int = 0,
         conditioning_mode: str = "seconds",
+        grid_rate_hz: float = 0.0,
     ) -> None:
         super().__init__()
         self.cache_root = Path(cache_root).resolve()
@@ -95,6 +99,8 @@ class DiffusionConditioningDataset(Dataset[DiffusionExample]):
                 f"unsupported conditioning_mode={conditioning_mode!r}; expected 'seconds' or 'seconds_frontend'"
             )
         self.target_dim = int(resolve_target_dim_from_cache_config(self.cache_root))
+        # 0 disables decimation entirely (cached rate is used as-is).
+        self.grid_rate_hz = float(max(0.0, float(grid_rate_hz)))
 
         manifest_path = self.cache_root / "manifests" / f"{self.split}.jsonl"
         self.rows = _load_jsonl(manifest_path)
@@ -176,6 +182,27 @@ class DiffusionConditioningDataset(Dataset[DiffusionExample]):
             raise RuntimeError(
                 f"expected family onset tensors [C,Tg], got {tuple(family_onsets_ft.shape)} / {tuple(family_onset_count_ft.shape)}"
             )
+        if float(self.grid_rate_hz) > 0.0:
+            decimated = downsample_grid_payload(
+                grid_ft=grid_ft,
+                grid_ids_ft=grid_ids_ft,
+                family_onsets_ft=family_onsets_ft,
+                family_onset_count_ft=family_onset_count_ft,
+                grid_num_frames=int(grid_num_frames),
+                duration_sec=float(payload["duration_sec"]),
+                target_rate_hz=float(self.grid_rate_hz),
+            )
+            grid_ft = decimated["grid_ft"]
+            grid_ids_ft = decimated["grid_ids_ft"]
+            family_onsets_ft = decimated["family_onsets_ft"]
+            family_onset_count_ft = decimated["family_onset_count_ft"]
+            grid_num_frames = int(decimated["grid_num_frames"])
+            grid_frame_rate = float(decimated["grid_frame_rate"])
+            grid_times_sec_t = uniform_grid_times(
+                int(grid_num_frames),
+                float(payload["duration_sec"]),
+            )
+
         if int(grid_ft.shape[-1]) != int(grid_num_frames):
             raise RuntimeError(
                 f"grid_num_frames mismatch: grid_ft has {grid_ft.shape[-1]} frames vs {grid_num_frames}"
@@ -397,12 +424,14 @@ def build_diffusion_dataloader(
     pin_memory: bool = False,
     persistent_workers: bool = False,
     multiprocessing_context: str | None = None,
+    grid_rate_hz: float = 0.0,
 ) -> DataLoader:
     dataset = DiffusionConditioningDataset(
         cache_root,
         split=split,
         max_items=max_items,
         conditioning_mode=conditioning_mode,
+        grid_rate_hz=float(grid_rate_hz),
     )
     loader_kwargs: dict[str, Any] = {}
     if int(num_workers) > 0:

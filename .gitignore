@@ -41,3 +41,21 @@ sketch_diffusion_out/
 # Static demo pages and their audio: the hosted listener replaces them
 /docs/
 /results/paper_results/single_kit_examples/
+
+# Bulk evaluation artifacts (regenerable): keep summaries, per-clip metrics
+# and stats; drop exported audio, decoded-target caches and FAD embeddings
+/results/eval/**/wavs/
+/results/eval/**/target_audio_cache/
+/results/eval/**/fad_assets/
+/results/eval/**/eval_input/
+/results/eval/**/per_clip_metrics.jsonl
+
+# Training byproducts: ablation runs ship configs and histories only
+/runs/**/best_samples/
+/runs/**/eval_plots/
+/runs/**/last.pt
+/runs/runs_dac_ce/grid_rate_ablation/*/best_diffusion.pt
+/runs/runs_dac_ce/grid_rate_ablation_discarded_norvq/
+
+# Machine-local job helpers
+/code/experiment/scripts/wait_for_gpu_then_run_grid_ablation.sh
