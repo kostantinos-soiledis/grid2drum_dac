@@ -1,0 +1,14 @@
+{
+  "audio_l1_mean": 0.05170483851834349,
+  "audio_l1_median": 0.0412895642220974,
+  "cache_root": "<PCA_DIFFUSION_ROOT>/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+  "metric_basis": "export_peak_normalized_audio",
+  "mrstft_logmag_l1_mean": 0.10389086307040955,
+  "mrstft_logmag_l1_median": 0.09554353356361389,
+  "num_examples": 1733,
+  "out_dir": "results/eval/grid_rate_ablation/direct_audio_eval/grid250hz_25steps",
+  "predictions_dir": "results/eval/grid_rate_ablation_exports/grid250hz_25steps",
+  "resolved_device": "cuda:0",
+  "sample_rate": 44100,
+  "split": "test"
+}
