@@ -6,6 +6,6 @@
 *.wav       filter=lfs diff=lfs merge=lfs -text
 *.mp3       filter=lfs diff=lfs merge=lfs -text
 
-# The former GitHub Pages demo site and its single-kit examples are no longer
-# tracked (see .gitignore); the hosted Hugging Face listener replaces them, so
-# the plain-blob overrides they needed have been removed.
+# Static listening page audio must be plain Git blobs, because GitHub Pages and
+# Anonymous GitHub serve LFS pointer files instead of their content
+docs/audio/** -filter -diff -merge

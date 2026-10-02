@@ -38,9 +38,6 @@ sketch_diffusion_out/
 # Compiled manuscript drafts (submission PDFs live with the paper sources)
 /*.pdf
 
-# Static listening page: published only from the `anonymous` branch
-/docs/
-
 # Final evaluation keeps tables and per-clip metrics, not regenerable audio.
 /results/final/**/wavs/
 /results/final/**/target_audio_cache/
