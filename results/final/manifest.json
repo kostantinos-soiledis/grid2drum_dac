@@ -1,0 +1,27 @@
+{
+  "comparisons": {
+    "capacity": [
+      "regression_6layer",
+      "regression_8layer_capacity"
+    ],
+    "grid_hz": [
+      "grid_90hz",
+      "grid_120hz",
+      "grid_250hz",
+      "grid_500hz"
+    ],
+    "regression": [
+      "postsnap_pca",
+      "regression_6layer"
+    ],
+    "representation": [
+      "presnap_latent",
+      "postsnap_pca"
+    ],
+    "rvq_ce": [
+      "postsnap_pca",
+      "grid_250hz"
+    ]
+  },
+  "evaluation": "results/final/evaluation"
+}

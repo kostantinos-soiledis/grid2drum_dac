@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 import json
 import math
@@ -26,6 +25,8 @@ DEFAULT_ENCODEC_BANDWIDTH = 2.2
 LEGACY_TARGET_LAYOUT = "framewise_sum_t128"
 DEFAULT_TARGET_LAYOUT = "framewise_sum"
 PCA_TARGET_LAYOUT = "framewise_pca"
+PRESNAP_TARGET_LAYOUT = "dac_projected_latents_presnap"
+PRESNAP_LATENT_SPACE = PRESNAP_TARGET_LAYOUT
 
 
 @dataclass(frozen=True)
@@ -961,6 +962,30 @@ def encode_audio_to_codes_bct(
     )
 
 
+def is_presnap_latent_basis(basis: Mapping[str, Any] | None) -> bool:
+    return isinstance(basis, Mapping) and str(basis.get("latent_space", "")) == PRESNAP_LATENT_SPACE
+
+
+def snap_presnap_latent_to_codes_bct(codec_model: Any, latent_btd: torch.Tensor) -> torch.Tensor:
+    """Snap DAC projected_latents [B,T,Q*d] to RVQ codes, one codebook_dim chunk per quantizer."""
+    latent = torch.as_tensor(latent_btd, dtype=torch.float32)
+    if int(latent.dim()) != 3:
+        raise ValueError(f"latent_btd must be [B,T,D], got {tuple(latent.shape)}")
+    latent_bdt = latent.transpose(1, 2).contiguous()
+    codes: list[torch.Tensor] = []
+    offset = 0
+    for quantizer in list(getattr(getattr(codec_model, "quantizer", None), "quantizers", []) or []):
+        width = int(quantizer.codebook_dim)
+        if offset + width > int(latent_bdt.shape[1]):
+            break
+        _embed, indices = quantizer.decode_latents(latent_bdt[:, offset : offset + width, :])
+        codes.append(indices)
+        offset += width
+    if not codes or offset != int(latent_bdt.shape[1]):
+        raise ValueError(f"pre-snap latent dim {int(latent_bdt.shape[1])} does not split into DAC codebook chunks")
+    return torch.stack(codes, dim=1).to(dtype=torch.long).contiguous()
+
+
 def requantize_latent_to_codes_bct(
     codec_model: Any,
     latent_btd: torch.Tensor,
@@ -968,7 +993,14 @@ def requantize_latent_to_codes_bct(
     device: torch.device | str,
     metadata: AudioCodecMetadata | Mapping[str, Any] | None = None,
     target_pca_basis: Mapping[str, Any] | None = None,
+    target_layout: str | None = None,
 ) -> torch.Tensor:
+    layout = str(target_layout or "").strip().lower()
+    if layout == PRESNAP_TARGET_LAYOUT or is_presnap_latent_basis(target_pca_basis):
+        return snap_presnap_latent_to_codes_bct(
+            codec_model,
+            torch.as_tensor(latent_btd, dtype=torch.float32, device=device),
+        )
     latent = reconstruct_latent_from_pca(
         torch.as_tensor(latent_btd, dtype=torch.float32, device=device),
         target_pca_basis,
@@ -1053,11 +1085,11 @@ def normalize_target_payload(
         )
         or DEFAULT_TARGET_LAYOUT
     ).strip().lower()
-    if target_layout == PCA_TARGET_LAYOUT:
+    if target_layout in {PCA_TARGET_LAYOUT, PRESNAP_TARGET_LAYOUT}:
         target_pc_tk = payload.get("target_pc_tk")
         target_pc_pool_k = payload.get("target_pc_pool_k")
         if target_pc_tk is None:
-            raise KeyError("cache payload is missing target_pc_tk for framewise_pca targets")
+            raise KeyError(f"cache payload is missing target_pc_tk for {target_layout} targets")
         target_pc_tk_t = torch.as_tensor(target_pc_tk, dtype=torch.float32).contiguous()
         if target_pc_pool_k is None:
             target_pc_pool_k_t = target_pc_tk_t.sum(dim=0).to(dtype=torch.float32).contiguous()
@@ -1119,6 +1151,8 @@ def resolve_target_layout_from_cache_config(
 ) -> str:
     cache_root_path = Path(cache_root).expanduser().resolve()
     config_payload = _maybe_read_json(cache_root_path / "config.json") or {}
+    if str(config_payload.get("latent_space") or "").strip().lower() == PRESNAP_LATENT_SPACE:
+        return PRESNAP_TARGET_LAYOUT
     layout = str(config_payload.get("target_layout") or "").strip().lower()
     return layout or str(default).strip().lower()
 
@@ -1126,6 +1160,8 @@ def resolve_target_layout_from_cache_config(
 def resolve_target_pca_basis_path_from_cache_config(cache_root: str | Path) -> Path | None:
     cache_root_path = Path(cache_root).expanduser().resolve()
     config_payload = _maybe_read_json(cache_root_path / "config.json") or {}
+    if str(config_payload.get("latent_space") or "").strip().lower() == PRESNAP_LATENT_SPACE:
+        return None
     rel_path = str(config_payload.get("pca_basis_path") or "").strip()
     if rel_path:
         candidate = (cache_root_path / rel_path).resolve()

@@ -1,0 +1,463 @@
+{
+  "acoustic_eval_dir": "results/final/evaluation/acoustic_eval",
+  "acoustic_summary": {
+    "ablations_root": "results/final/evaluation/eval_input",
+    "band_profile_summary_csv": "band_profile_summary.csv",
+    "band_summary_csv": "band_summary.csv",
+    "bootstrap_samples": null,
+    "cache_root": "results/final/evaluation/target_audio_cache",
+    "efficiency_available": true,
+    "efficiency_runs": [
+      {
+        "checkpoint_num_parameters_loaded": false,
+        "config_found": true,
+        "efficiency_fields_found": [
+          "audio_sec_per_sec",
+          "batch_size",
+          "best_checkpoint_epoch",
+          "clips_per_sec",
+          "codec_decode_sec_total",
+          "device_name",
+          "export_peak_gpu_mem_allocated_mb",
+          "export_peak_gpu_mem_reserved_mb",
+          "export_wall_sec_total",
+          "model_forward_sec_total",
+          "num_examples",
+          "num_parameters",
+          "rtf_end_to_end",
+          "rtf_model_only",
+          "time_to_best_checkpoint_sec",
+          "total_audio_sec_generated"
+        ],
+        "export_summary_found": true,
+        "history_found": true,
+        "model": "grid_120hz"
+      },
+      {
+        "checkpoint_num_parameters_loaded": false,
+        "config_found": true,
+        "efficiency_fields_found": [
+          "audio_sec_per_sec",
+          "batch_size",
+          "best_checkpoint_epoch",
+          "clips_per_sec",
+          "codec_decode_sec_total",
+          "device_name",
+          "export_peak_gpu_mem_allocated_mb",
+          "export_peak_gpu_mem_reserved_mb",
+          "export_wall_sec_total",
+          "model_forward_sec_total",
+          "num_examples",
+          "num_parameters",
+          "rtf_end_to_end",
+          "rtf_model_only",
+          "time_to_best_checkpoint_sec",
+          "total_audio_sec_generated"
+        ],
+        "export_summary_found": true,
+        "history_found": true,
+        "model": "grid_250hz"
+      },
+      {
+        "checkpoint_num_parameters_loaded": false,
+        "config_found": true,
+        "efficiency_fields_found": [
+          "audio_sec_per_sec",
+          "batch_size",
+          "best_checkpoint_epoch",
+          "clips_per_sec",
+          "codec_decode_sec_total",
+          "device_name",
+          "export_peak_gpu_mem_allocated_mb",
+          "export_peak_gpu_mem_reserved_mb",
+          "export_wall_sec_total",
+          "model_forward_sec_total",
+          "num_examples",
+          "num_parameters",
+          "rtf_end_to_end",
+          "rtf_model_only",
+          "time_to_best_checkpoint_sec",
+          "total_audio_sec_generated"
+        ],
+        "export_summary_found": true,
+        "history_found": true,
+        "model": "grid_500hz"
+      },
+      {
+        "checkpoint_num_parameters_loaded": false,
+        "config_found": true,
+        "efficiency_fields_found": [
+          "audio_sec_per_sec",
+          "batch_size",
+          "best_checkpoint_epoch",
+          "clips_per_sec",
+          "codec_decode_sec_total",
+          "device_name",
+          "export_peak_gpu_mem_allocated_mb",
+          "export_peak_gpu_mem_reserved_mb",
+          "export_wall_sec_total",
+          "model_forward_sec_total",
+          "num_examples",
+          "num_parameters",
+          "rtf_end_to_end",
+          "rtf_model_only",
+          "time_to_best_checkpoint_sec",
+          "total_audio_sec_generated"
+        ],
+        "export_summary_found": true,
+        "history_found": true,
+        "model": "grid_90hz"
+      },
+      {
+        "checkpoint_num_parameters_loaded": false,
+        "config_found": true,
+        "efficiency_fields_found": [
+          "audio_sec_per_sec",
+          "batch_size",
+          "best_checkpoint_epoch",
+          "clips_per_sec",
+          "codec_decode_sec_total",
+          "device_name",
+          "export_peak_gpu_mem_allocated_mb",
+          "export_peak_gpu_mem_reserved_mb",
+          "export_wall_sec_total",
+          "model_forward_sec_total",
+          "num_examples",
+          "num_parameters",
+          "rtf_end_to_end",
+          "rtf_model_only",
+          "time_to_best_checkpoint_sec",
+          "total_audio_sec_generated"
+        ],
+        "export_summary_found": true,
+        "history_found": true,
+        "model": "postsnap_pca"
+      },
+      {
+        "checkpoint_num_parameters_loaded": false,
+        "config_found": true,
+        "efficiency_fields_found": [
+          "audio_sec_per_sec",
+          "batch_size",
+          "best_checkpoint_epoch",
+          "clips_per_sec",
+          "codec_decode_sec_total",
+          "device_name",
+          "export_peak_gpu_mem_allocated_mb",
+          "export_peak_gpu_mem_reserved_mb",
+          "export_wall_sec_total",
+          "model_forward_sec_total",
+          "num_examples",
+          "num_parameters",
+          "rtf_end_to_end",
+          "rtf_model_only",
+          "time_to_best_checkpoint_sec",
+          "total_audio_sec_generated"
+        ],
+        "export_summary_found": true,
+        "history_found": true,
+        "model": "presnap_latent"
+      },
+      {
+        "checkpoint_num_parameters_loaded": false,
+        "config_found": true,
+        "efficiency_fields_found": [
+          "audio_sec_per_sec",
+          "best_checkpoint_epoch",
+          "clips_per_sec",
+          "codec_decode_sec_total",
+          "device_name",
+          "export_peak_gpu_mem_allocated_mb",
+          "export_peak_gpu_mem_reserved_mb",
+          "export_wall_sec_total",
+          "model_forward_sec_total",
+          "num_examples",
+          "num_parameters",
+          "rtf_end_to_end",
+          "rtf_model_only",
+          "time_to_best_checkpoint_sec",
+          "total_audio_sec_generated"
+        ],
+        "export_summary_found": true,
+        "history_found": true,
+        "model": "regression_6layer"
+      },
+      {
+        "checkpoint_num_parameters_loaded": false,
+        "config_found": true,
+        "efficiency_fields_found": [
+          "audio_sec_per_sec",
+          "best_checkpoint_epoch",
+          "clips_per_sec",
+          "codec_decode_sec_total",
+          "device_name",
+          "export_peak_gpu_mem_allocated_mb",
+          "export_peak_gpu_mem_reserved_mb",
+          "export_wall_sec_total",
+          "model_forward_sec_total",
+          "num_examples",
+          "num_parameters",
+          "rtf_end_to_end",
+          "rtf_model_only",
+          "time_to_best_checkpoint_sec",
+          "total_audio_sec_generated"
+        ],
+        "export_summary_found": true,
+        "history_found": true,
+        "model": "regression_8layer_capacity"
+      }
+    ],
+    "efficiency_summary_csv": "efficiency_summary.csv",
+    "evaluates_decoded_audio": "cache_native_sample_rate",
+    "fad_cache": {
+      "cache_hits": 0,
+      "cache_misses": 8,
+      "cache_root": "results/final/evaluation/eval_input/.cache/acoustic_eval_fad_inf/clap-laion-music",
+      "num_models": 8
+    },
+    "fad_completed": true,
+    "fad_cuda_visible_devices": "1",
+    "fad_device": "cuda:0",
+    "fad_error": null,
+    "fad_inf_min_n": 500,
+    "fad_inf_steps": 25,
+    "fad_inf_workers": 1,
+    "fad_model": "clap-laion-music",
+    "fad_python": "python",
+    "fad_repeat_summary_csv": "fad_repeat_summary.csv",
+    "fad_repeats": 8,
+    "fad_requested": true,
+    "fad_seed": 20260404,
+    "fad_workers": 1,
+    "inference_alpha": null,
+    "inference_completed": false,
+    "inference_error": null,
+    "inference_summary_md": null,
+    "num_runs": 8,
+    "num_shared_examples": 1733,
+    "out_root": "results/final/evaluation/acoustic_eval",
+    "overall_summary_csv": "overall_summary.csv",
+    "paired_metric_intervals_csv": null,
+    "paired_metric_significance_csv": null,
+    "per_clip_metrics_csv": "per_clip_metrics.csv",
+    "permutation_samples": null,
+    "references": [
+      {
+        "citation": "Kilgour et al., 2019. Fr\u00e9chet Audio Distance: A Reference-Free Metric for Evaluating Music Enhancement Algorithms.",
+        "url": "https://www.isca-archive.org/interspeech_2019/kilgour19_interspeech.html"
+      },
+      {
+        "citation": "Gui et al., 2024. Adapting Fr\u00e9chet Audio Distance for Generative Music Evaluation.",
+        "url": "https://www.microsoft.com/en-us/research/publication/adapting-frechet-audio-distance-for-generative-music-evaluation/"
+      },
+      {
+        "citation": "Gr\u00f6tschla et al., 2025. Benchmarking Music Generation Models and Metrics via Human Preference Studies.",
+        "url": "https://openreview.net/forum?id=105yqGIpVW"
+      },
+      {
+        "citation": "Saitis and Wallmark, 2024. Timbral brightness perception investigated through multimodal interference.",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/39090510/"
+      },
+      {
+        "citation": "Auditory and vibrotactile interactions in perception of timbre acoustic features, 2025.",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/41168236/"
+      }
+    ],
+    "runs": [
+      "grid_120hz",
+      "grid_250hz",
+      "grid_500hz",
+      "grid_90hz",
+      "postsnap_pca",
+      "presnap_latent",
+      "regression_6layer",
+      "regression_8layer_capacity"
+    ],
+    "sample_rate": 44100,
+    "sample_rates": [
+      44100
+    ],
+    "skip_inference": true,
+    "style_summary_csv": "style_summary.csv",
+    "uses_44k_targets": true
+  },
+  "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+  "compat_cache_dir": "results/final/evaluation/target_audio_cache",
+  "compat_cache_summary": {
+    "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+    "context_ms": 20.0,
+    "num_examples": 1733,
+    "num_shards": 217,
+    "out_dir": "results/final/evaluation/target_audio_cache",
+    "resolved_device": "cuda:0",
+    "sample_rate": 44100,
+    "split": "test"
+  },
+  "fad_model": "clap-laion-music",
+  "fad_python": "python",
+  "out_dir": "results/final/evaluation",
+  "runs": [
+    {
+      "direct_eval_dir": "results/final/evaluation/direct_audio_eval/postsnap_pca",
+      "direct_summary": {
+        "audio_l1_mean": 0.05343397640646261,
+        "audio_l1_median": 0.041657689958810806,
+        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "metric_basis": "export_peak_normalized_audio",
+        "mrstft_logmag_l1_mean": 0.10597175075546277,
+        "mrstft_logmag_l1_median": 0.09740597009658813,
+        "num_examples": 1733,
+        "out_dir": "results/final/evaluation/direct_audio_eval/postsnap_pca",
+        "predictions_dir": "runs/final/exports/postsnap_pca",
+        "resolved_device": "cuda:0",
+        "sample_rate": 44100,
+        "split": "test"
+      },
+      "model_name": "postsnap_pca",
+      "predictions_dir": "runs/final/exports/postsnap_pca",
+      "train_dir": null
+    },
+    {
+      "direct_eval_dir": "results/final/evaluation/direct_audio_eval/presnap_latent",
+      "direct_summary": {
+        "audio_l1_mean": 0.05287051085485882,
+        "audio_l1_median": 0.041943132877349854,
+        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "metric_basis": "export_peak_normalized_audio",
+        "mrstft_logmag_l1_mean": 0.10999021132837226,
+        "mrstft_logmag_l1_median": 0.10129858553409576,
+        "num_examples": 1733,
+        "out_dir": "results/final/evaluation/direct_audio_eval/presnap_latent",
+        "predictions_dir": "runs/final/exports/presnap_latent",
+        "resolved_device": "cuda:0",
+        "sample_rate": 44100,
+        "split": "test"
+      },
+      "model_name": "presnap_latent",
+      "predictions_dir": "runs/final/exports/presnap_latent",
+      "train_dir": null
+    },
+    {
+      "direct_eval_dir": "results/final/evaluation/direct_audio_eval/regression_6layer",
+      "direct_summary": {
+        "audio_l1_mean": 0.04509602668891305,
+        "audio_l1_median": 0.03443315252661705,
+        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "metric_basis": "export_peak_normalized_audio",
+        "mrstft_logmag_l1_mean": 0.13586790491469458,
+        "mrstft_logmag_l1_median": 0.12307709455490112,
+        "num_examples": 1733,
+        "out_dir": "results/final/evaluation/direct_audio_eval/regression_6layer",
+        "predictions_dir": "runs/final/exports/regression_6layer",
+        "resolved_device": "cuda:0",
+        "sample_rate": 44100,
+        "split": "test"
+      },
+      "model_name": "regression_6layer",
+      "predictions_dir": "runs/final/exports/regression_6layer",
+      "train_dir": null
+    },
+    {
+      "direct_eval_dir": "results/final/evaluation/direct_audio_eval/regression_8layer_capacity",
+      "direct_summary": {
+        "audio_l1_mean": 0.0447387479678811,
+        "audio_l1_median": 0.0337073989212513,
+        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "metric_basis": "export_peak_normalized_audio",
+        "mrstft_logmag_l1_mean": 0.1353205029529708,
+        "mrstft_logmag_l1_median": 0.12417453527450562,
+        "num_examples": 1733,
+        "out_dir": "results/final/evaluation/direct_audio_eval/regression_8layer_capacity",
+        "predictions_dir": "runs/final/exports/regression_8layer_capacity",
+        "resolved_device": "cuda:0",
+        "sample_rate": 44100,
+        "split": "test"
+      },
+      "model_name": "regression_8layer_capacity",
+      "predictions_dir": "runs/final/exports/regression_8layer_capacity",
+      "train_dir": null
+    },
+    {
+      "direct_eval_dir": "results/final/evaluation/direct_audio_eval/grid_90hz",
+      "direct_summary": {
+        "audio_l1_mean": 0.05404032961843214,
+        "audio_l1_median": 0.04211069270968437,
+        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "metric_basis": "export_peak_normalized_audio",
+        "mrstft_logmag_l1_mean": 0.10598598486022133,
+        "mrstft_logmag_l1_median": 0.09801539033651352,
+        "num_examples": 1733,
+        "out_dir": "results/final/evaluation/direct_audio_eval/grid_90hz",
+        "predictions_dir": "runs/final/exports/grid_90hz",
+        "resolved_device": "cuda:0",
+        "sample_rate": 44100,
+        "split": "test"
+      },
+      "model_name": "grid_90hz",
+      "predictions_dir": "runs/final/exports/grid_90hz",
+      "train_dir": null
+    },
+    {
+      "direct_eval_dir": "results/final/evaluation/direct_audio_eval/grid_120hz",
+      "direct_summary": {
+        "audio_l1_mean": 0.05262008924155447,
+        "audio_l1_median": 0.041214264929294586,
+        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "metric_basis": "export_peak_normalized_audio",
+        "mrstft_logmag_l1_mean": 0.1031492392887752,
+        "mrstft_logmag_l1_median": 0.09593957662582397,
+        "num_examples": 1733,
+        "out_dir": "results/final/evaluation/direct_audio_eval/grid_120hz",
+        "predictions_dir": "runs/final/exports/grid_120hz",
+        "resolved_device": "cuda:0",
+        "sample_rate": 44100,
+        "split": "test"
+      },
+      "model_name": "grid_120hz",
+      "predictions_dir": "runs/final/exports/grid_120hz",
+      "train_dir": null
+    },
+    {
+      "direct_eval_dir": "results/final/evaluation/direct_audio_eval/grid_250hz",
+      "direct_summary": {
+        "audio_l1_mean": 0.05170483851834349,
+        "audio_l1_median": 0.0412895642220974,
+        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "metric_basis": "export_peak_normalized_audio",
+        "mrstft_logmag_l1_mean": 0.10389086307040955,
+        "mrstft_logmag_l1_median": 0.09554353356361389,
+        "num_examples": 1733,
+        "out_dir": "results/final/evaluation/direct_audio_eval/grid_250hz",
+        "predictions_dir": "runs/final/exports/grid_250hz",
+        "resolved_device": "cuda:0",
+        "sample_rate": 44100,
+        "split": "test"
+      },
+      "model_name": "grid_250hz",
+      "predictions_dir": "runs/final/exports/grid_250hz",
+      "train_dir": null
+    },
+    {
+      "direct_eval_dir": "results/final/evaluation/direct_audio_eval/grid_500hz",
+      "direct_summary": {
+        "audio_l1_mean": 0.049935599557401913,
+        "audio_l1_median": 0.039623089134693146,
+        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "metric_basis": "export_peak_normalized_audio",
+        "mrstft_logmag_l1_mean": 0.10461026478603921,
+        "mrstft_logmag_l1_median": 0.09574860334396362,
+        "num_examples": 1733,
+        "out_dir": "results/final/evaluation/direct_audio_eval/grid_500hz",
+        "predictions_dir": "runs/final/exports/grid_500hz",
+        "resolved_device": "cuda:0",
+        "sample_rate": 44100,
+        "split": "test"
+      },
+      "model_name": "grid_500hz",
+      "predictions_dir": "runs/final/exports/grid_500hz",
+      "train_dir": null
+    }
+  ],
+  "split": "test",
+  "train_root": null
+}

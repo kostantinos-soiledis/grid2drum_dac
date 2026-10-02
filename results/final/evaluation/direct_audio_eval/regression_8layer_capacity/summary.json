@@ -1,0 +1,14 @@
+{
+  "audio_l1_mean": 0.0447387479678811,
+  "audio_l1_median": 0.0337073989212513,
+  "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+  "metric_basis": "export_peak_normalized_audio",
+  "mrstft_logmag_l1_mean": 0.1353205029529708,
+  "mrstft_logmag_l1_median": 0.12417453527450562,
+  "num_examples": 1733,
+  "out_dir": "results/final/evaluation/direct_audio_eval/regression_8layer_capacity",
+  "predictions_dir": "runs/final/exports/regression_8layer_capacity",
+  "resolved_device": "cuda:0",
+  "sample_rate": 44100,
+  "split": "test"
+}

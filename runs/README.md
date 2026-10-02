@@ -1,62 +1,42 @@
 # Runs
 
-This is a compact run bundle. Each main paper checkpoint directory keeps:
+## Final experiment: `runs/final/`
 
-- `best_diffusion.pt` or `best_direct.pt`
-- `config.json` where available
-- `run_config.json`
-- `history.csv`
+Every arm was trained for 150 epochs with seed 1234; the checkpoint with the
+lowest validation loss is the one evaluated.
 
-The plain diffusion checkpoints that were only available with optimizer state
-were stripped into inference-only files. The noisy originals remain in the
-parent experiment workspace.
+| Path | Purpose |
+| --- | --- |
+| `postsnap_pca/` | 25-step diffusion on 72-D PCA of the post-snap DAC latent |
+| `presnap_latent/` | 25-step diffusion on native 72-D pre-snap DAC projected latents; no PCA |
+| `regression_6layer/` | deterministic direct-regression baseline |
+| `regression_8layer_capacity/` | parameter-capacity control for the regression baseline |
+| `grid_hz/{90hz,120hz,250hz,500hz}/` | secondary conditioning-rate check; 500 Hz uses a MIDI-rerendered overlay |
+| `exports/` | decoded test-set predictions reused by the evaluation (manifests and summaries only) |
 
-To keep the bundle lean, only the most useful checkpoints ship: two diffusion
-models plus one baseline. The full step-count sweep (6/12/25/50 steps, plain and
-RVQ-CE) and all baselines are still reported under
-`results/paper_results/` (`run_metrics.csv`, `full_acoustic_eval/`); only these
-weights are included.
+The pre-snap targets are native DAC projected latents (layout
+`dac_projected_latents_presnap`): nine 8-D quantizer projections before
+nearest-codebook snapping, concatenated. They are not PCA coordinates.
 
-Included checkpoint families:
+Run [`run_final_results.sh`](../run_final_results.sh) from the repository root.
+It resumes incomplete runs and skips only runs whose history reached epoch 149.
+The 500 Hz run uses microbatch 1 with four-step gradient accumulation to keep
+the effective training batch at 4 on 10 GiB GPUs.
 
-- `runs_dac/dac_25steps` (plain PCA diffusion, 25 steps)
-- `runs_dac_ce/dac_25steps` (RVQ-CE PCA diffusion, 25 steps)
-- `runs_direct/direct_pca_d1024_l6_seed1234` (direct PCA regressor baseline)
-- `sketch_expander_dac44_native_v5`
-- `mini_cache` and `third_party/dac_44khz` for local demo decoding
+Only configs, histories and export summaries are versioned here; the
+checkpoints themselves are not.
 
-`frontend_ablation_metadata/` keeps only configs and histories for ablation
-runs; the full ablation checkpoints and prediction caches were intentionally
-left out.
+## Demo runtime files
 
-## Metadata-only run records
+[`code/demo`](../code/demo) loads its models from the original paths below,
+committed through Git LFS and listed in [`weights/manifest.json`](weights/manifest.json).
+The three checkpoints are byte-identical to final arms:
 
-Every run the paper cites now has its provenance in this bundle even when its
-weights do not ship. These directories carry `run_config.json`, `config.json`
-where available, `history.csv`, and the export `test_set_predictions/summary.json`
-(parameter count, selected epoch, best validation loss, RTF, device) — but no
-checkpoints and no prediction WAVs:
+| Demo path | Final arm |
+| --- | --- |
+| `runs_dac/dac_25steps/` | `final/postsnap_pca/` |
+| `runs_dac_ce/dac_25steps/` | `final/grid_hz/250hz/` |
+| `runs_direct/direct_pca_d1024_l6_seed1234/` | `final/regression_6layer/` |
 
-- `runs_dac/dac_6steps`, `dac_12steps`, `dac_50steps` (plain diffusion sweep)
-- `runs_dac_ce/dac_6steps` (RVQ-CE sweep)
-- `runs_dac_native/dac_25steps` (native-basis ablation; metrics in
-  `results/paper_results/native_subspace_eval*/`)
-- `runs_direct/direct_pca_d1024_l8_seed1234` (101.69M capacity control)
-- `runs_baselines/dac_test_v1/` (reconstruction ceilings, procedural render,
-  source-code decode, symbolic nearest-neighbour retrieval)
-
-The capacity control is the one run whose numbers are not yet in
-`results/paper_results/`. Its 1,733 test clips are exported in the parent
-workspace but were never put through `run_diffusion_acoustic_eval.py`, so it has
-no row in `core_complete_run_metrics.csv`. Nothing needs retraining; the
-evaluation must run in the parent workspace because it needs the GMD-derived
-target cache, which is not redistributable.
-
-Absolute paths in every copied record are rewritten to the `<DRUMTOGRID_ROOT>`
-placeholder, matching the rest of the bundle.
-
-Archived configs predate the removal of conditioning dropout and classifier-free
-guidance from the code. They may still contain `cond_dropout_prob` and
-`guidance_scale` keys; both were always at their no-op values (`0.0` and `1.0`),
-so the records describe exactly the behaviour the current code produces. They
-are kept verbatim as provenance rather than rewritten.
+`mini_cache/`, `sketch_expander_dac44_native_v5/` and `third_party/dac_44khz/`
+hold the demo's cache statistics, sketch expander and DAC codec weights.

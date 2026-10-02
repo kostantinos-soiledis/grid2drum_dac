@@ -42,6 +42,7 @@ except Exception:  # pragma: no cover
 
 from data.diffusion_dataset import build_diffusion_dataloader
 from data.encodec_utils import (
+    PRESNAP_TARGET_LAYOUT,
     load_audio_codec_model,
     load_target_pca_basis,
     resolve_codec_metadata_from_cache_config,
@@ -132,6 +133,12 @@ def _parse_args() -> argparse.Namespace:
             "(from the run config) so decimated-grid runs export on the grid they were trained on; "
             "pass 0 for the cache's native rate."
         ),
+    )
+    parser.add_argument(
+        "--grid-overlay-root",
+        type=str,
+        default="",
+        help="Optional MIDI-rerendered grid overlay used during training.",
     )
     parser.add_argument("--x0-clip-norm", type=float, default=DEFAULT_SAMPLE_X0_CLIP_NORM)
     parser.add_argument("--num-steps", type=int, default=400)
@@ -286,6 +293,23 @@ def _resolve_grid_rate_hz(train_dir: Path, requested: float) -> float:
     return 0.0
 
 
+def _resolve_grid_overlay_root(train_dir: Path, requested: str) -> str:
+    if str(requested).strip():
+        return str(Path(requested).expanduser().resolve())
+    for name in ("config.json", "run_config.json"):
+        config_path = train_dir / name
+        if not config_path.is_file():
+            continue
+        try:
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        value = str(config.get("grid_overlay_root") or "").strip()
+        if value:
+            return value
+    return ""
+
+
 def main() -> None:
     args = _parse_args()
 
@@ -296,6 +320,7 @@ def main() -> None:
     checkpoint_path = _resolve_checkpoint_path(train_dir, str(args.checkpoint))
     out_dir = _resolve_out_dir(train_dir, split, str(args.out_dir), conditioning_ablation)
     grid_rate_hz = _resolve_grid_rate_hz(train_dir, float(args.grid_rate_hz))
+    grid_overlay_root = _resolve_grid_overlay_root(train_dir, str(args.grid_overlay_root))
 
     available_splits = _available_splits(cache_root)
     split_manifest = cache_root / "manifests" / f"{split}.jsonl"
@@ -332,12 +357,16 @@ def main() -> None:
         checkpoint_payload,
         fallback=resolve_codec_metadata_from_cache_config(cache_root),
     )
+    cache_target_layout = resolve_target_layout_from_cache_config(cache_root)
     target_layout = str(
-        checkpoint_payload.get("target_layout")
-        or resolve_target_layout_from_cache_config(cache_root)
+        cache_target_layout
+        if cache_target_layout == PRESNAP_TARGET_LAYOUT
+        else checkpoint_payload.get("target_layout") or cache_target_layout
     ).strip().lower()
     target_pca_basis = None
-    if checkpoint_payload.get("target_pca_basis") is not None:
+    if target_layout == PRESNAP_TARGET_LAYOUT:
+        target_pca_basis = None
+    elif checkpoint_payload.get("target_pca_basis") is not None:
         target_pca_basis = load_target_pca_basis(
             checkpoint_payload["target_pca_basis"],
             device=device,
@@ -372,6 +401,7 @@ def main() -> None:
         max_items=int(args.max_items),
         pin_memory=pin_memory,
         grid_rate_hz=float(grid_rate_hz),
+        grid_overlay_root=grid_overlay_root,
     )
 
     manifest_rows: list[dict[str, Any]] = []
@@ -431,6 +461,7 @@ def main() -> None:
             pred_latent,
             encodec_model,
             target_pca_basis=target_pca_basis,
+            target_layout=target_layout,
         )
         codec_decode_sec_total += float(time.perf_counter() - decode_started_at)
 
