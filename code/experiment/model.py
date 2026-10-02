@@ -14,11 +14,14 @@ import torchaudio
 from data.encodec_utils import (
     decode_codes_to_audio_b1t,
     decode_quantized_latent_to_audio,
+    is_presnap_latent_basis,
     load_target_pca_basis,
+    PRESNAP_TARGET_LAYOUT,
     reconstruct_latent_from_pca,
     requantize_latent_to_codes_bct,
     resolve_audio_codec_sample_rate,
     rvq_sum_latents,
+    snap_presnap_latent_to_codes_bct,
     token_ids_to_codebook_embeddings,
 )
 from data.diffusion_dataset import estimate_target_normalization
@@ -1345,6 +1348,7 @@ def diffusion_train_step(
     onset_loss_weighting: bool = False,
     onset_token_radius: int = 1,
     target_pca_basis: Mapping[str, Any] | None = None,
+    target_layout: str | None = None,
     use_bpm_training_geometry: bool = False,
     bpm_geometry_num_beats: int = DEFAULT_INFERENCE_NUM_BEATS,
 ):
@@ -1536,6 +1540,7 @@ def diffusion_train_step(
                 pred_latent_raw,
                 encodec_model,
                 target_pca_basis=resolved_target_pca_basis,
+                target_layout=target_layout,
             )
             with torch.no_grad():
                 target_audio_bct = decode_latent_to_audio(
@@ -1949,7 +1954,14 @@ def decode_latent_to_audio(
     encodec_model,
     *,
     target_pca_basis: Mapping[str, Any] | None = None,
+    target_layout: str | None = None,
 ):
+    layout = str(target_layout or "").strip().lower()
+    if layout == PRESNAP_TARGET_LAYOUT or is_presnap_latent_basis(target_pca_basis):
+        # Pre-snap DAC latents are only decodable after snapping each chunk to its codebook.
+        latent = torch.as_tensor(pred_latent_btd, dtype=torch.float32)
+        codes = snap_presnap_latent_to_codes_bct(encodec_model, latent)
+        return decode_codes_to_audio_b1t(encodec_model, codes, device=latent.device)
     latent = reconstruct_latent_from_pca(
         torch.as_tensor(pred_latent_btd, dtype=torch.float32),
         target_pca_basis,
@@ -2097,6 +2109,7 @@ def save_inference_wav(
     target_token_rate_hz: float = DEFAULT_TARGET_TOKEN_RATE_HZ,
     beat_crossfade_ms: float = DEFAULT_BEAT_CROSSFADE_MS,
     target_pca_basis: Mapping[str, Any] | None = None,
+    target_layout: str | None = None,
 ):
     os.makedirs(out_dir, exist_ok=True)
 
@@ -2139,6 +2152,7 @@ def save_inference_wav(
         pred_latent,
         encodec_model,
         target_pca_basis=resolved_target_pca_basis,
+        target_layout=target_layout,
     )
     if audio.dim() == 3:
         wav = audio[0]
@@ -2188,6 +2202,7 @@ def save_inference_wav(
             pred_latent,
             device=device,
             target_pca_basis=resolved_target_pca_basis,
+            target_layout=target_layout,
         )
         target_requant_audio = decode_codes_to_audio_b1t(encodec_model, target_requant_codes, device=device)
         pred_requant_audio = decode_codes_to_audio_b1t(encodec_model, pred_requant_codes, device=device)
@@ -2244,6 +2259,7 @@ def save_inference_wav(
                         pred_latent,
                         encodec_model,
                         target_pca_basis=resolved_target_pca_basis,
+                        target_layout=target_layout,
                     )
                     - pred_requant_audio
                 ).abs().mean().item()

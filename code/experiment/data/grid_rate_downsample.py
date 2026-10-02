@@ -61,10 +61,19 @@ def downsample_grid_payload(
     """Decimate one cached example to target_rate_hz.
 
     Returns the replacement tensors plus the new frame count / effective rate.
-    A target rate at or above the cached rate is a no-op returning the inputs
-    unchanged, so the source-rate arm goes through this same code path.
+    A target rate matching the cached frame count is a no-op returning the
+    inputs unchanged. A genuinely higher rate raises instead of fabricating
+    timing precision by interpolation.
     """
     frames = int(grid_num_frames)
+    requested_frames = int(max(1, round(float(duration_sec) * float(target_rate_hz))))
+    if int(frames) > 0 and float(duration_sec) > 0.0 and int(requested_frames) > int(frames):
+        cached_rate = float(frames) / float(duration_sec)
+        raise ValueError(
+            "grid-rate upsampling is invalid: "
+            f"requested {float(target_rate_hz):g} Hz ({requested_frames} frames) from a "
+            f"{cached_rate:.3f} Hz cache ({frames} frames). Re-render the grid from MIDI."
+        )
     out_frames = target_frame_count(
         grid_num_frames=frames,
         duration_sec=duration_sec,

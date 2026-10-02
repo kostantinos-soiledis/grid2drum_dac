@@ -8,7 +8,12 @@ from typing import Any, Mapping, Sequence
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from data.encodec_utils import normalize_target_payload, resolve_target_dim_from_cache_config
+from data.encodec_utils import (
+    PRESNAP_TARGET_LAYOUT,
+    normalize_target_payload,
+    resolve_target_dim_from_cache_config,
+    resolve_target_layout_from_cache_config,
+)
 
 
 @dataclass(frozen=True)
@@ -89,6 +94,7 @@ class DiffusionConditioningDataset(Dataset[DiffusionExample]):
         max_items: int = 0,
         conditioning_mode: str = "seconds",
         grid_rate_hz: float = 0.0,
+        grid_overlay_root: str | Path | None = None,
     ) -> None:
         super().__init__()
         self.cache_root = Path(cache_root).resolve()
@@ -99,6 +105,19 @@ class DiffusionConditioningDataset(Dataset[DiffusionExample]):
                 f"unsupported conditioning_mode={conditioning_mode!r}; expected 'seconds' or 'seconds_frontend'"
             )
         self.target_dim = int(resolve_target_dim_from_cache_config(self.cache_root))
+        self.target_layout = str(resolve_target_layout_from_cache_config(self.cache_root))
+        self.grid_overlay_root = (
+            None
+            if grid_overlay_root is None or not str(grid_overlay_root).strip()
+            else Path(grid_overlay_root).expanduser().resolve()
+        )
+        if self.grid_overlay_root is not None:
+            overlay_config_path = self.grid_overlay_root / "config.json"
+            if not overlay_config_path.is_file():
+                raise FileNotFoundError(f"missing grid-overlay config: {overlay_config_path}")
+            overlay_config = json.loads(overlay_config_path.read_text(encoding="utf-8"))
+            if str(overlay_config.get("format")) != "grid2drum-grid-overlay-v1":
+                raise ValueError(f"unsupported grid-overlay format in {overlay_config_path}")
         # 0 disables decimation entirely (cached rate is used as-is).
         self.grid_rate_hz = float(max(0.0, float(grid_rate_hz)))
 
@@ -119,6 +138,23 @@ class DiffusionConditioningDataset(Dataset[DiffusionExample]):
         row = dict(row)
         example_path = (self.cache_root / str(row["out_pt"])).resolve()
         payload = dict(torch.load(example_path, map_location="cpu", weights_only=False))
+        if self.grid_overlay_root is not None:
+            overlay_path = (self.grid_overlay_root / str(row["out_pt"])).resolve()
+            if not overlay_path.is_file():
+                raise FileNotFoundError(f"missing grid overlay for cache example: {overlay_path}")
+            overlay = dict(torch.load(overlay_path, map_location="cpu", weights_only=False))
+            if str(overlay.get("source_id") or "") != str(payload.get("source_id") or ""):
+                raise RuntimeError(f"grid-overlay source mismatch for {example_path}")
+            for key in (
+                "grid_ft",
+                "grid_ids_ft",
+                "family_onsets_ft",
+                "family_onset_count_ft",
+                "grid_times_sec_t",
+                "grid_num_frames",
+                "grid_frame_rate",
+            ):
+                payload[key] = overlay[key]
         _require_payload_keys(
             payload,
             (
@@ -139,8 +175,11 @@ class DiffusionConditioningDataset(Dataset[DiffusionExample]):
             example_path=example_path,
         )
 
+        target_payload = payload
+        if self.target_layout == PRESNAP_TARGET_LAYOUT:
+            target_payload = {**payload, "target_layout": PRESNAP_TARGET_LAYOUT, "pca_basis_path": ""}
         target_sum_td, target_sum_pool_d, target_dim = normalize_target_payload(
-            payload,
+            target_payload,
             fallback_target_dim=int(self.target_dim),
         )
         raw_target_sum_td = torch.as_tensor(
@@ -254,8 +293,16 @@ class DiffusionConditioningDataset(Dataset[DiffusionExample]):
             target_full_sum_td=raw_target_sum_td,
             target_dim=int(target_dim),
             target_full_dim=int(raw_target_sum_td.shape[-1]),
-            target_layout=str(payload.get("target_layout") or "framewise_sum"),
-            pca_basis_path=str(payload.get("pca_basis_path") or ""),
+            target_layout=(
+                PRESNAP_TARGET_LAYOUT
+                if self.target_layout == PRESNAP_TARGET_LAYOUT
+                else str(payload.get("target_layout") or "framewise_sum")
+            ),
+            pca_basis_path=(
+                ""
+                if self.target_layout == PRESNAP_TARGET_LAYOUT
+                else str(payload.get("pca_basis_path") or "")
+            ),
             target_num_frames=target_num_frames,
             source_codes_ct=source_codes_ct,
             target_sum_pool_d=raw_target_sum_pool_d,
@@ -425,6 +472,7 @@ def build_diffusion_dataloader(
     persistent_workers: bool = False,
     multiprocessing_context: str | None = None,
     grid_rate_hz: float = 0.0,
+    grid_overlay_root: str | Path | None = None,
 ) -> DataLoader:
     dataset = DiffusionConditioningDataset(
         cache_root,
@@ -432,6 +480,7 @@ def build_diffusion_dataloader(
         max_items=max_items,
         conditioning_mode=conditioning_mode,
         grid_rate_hz=float(grid_rate_hz),
+        grid_overlay_root=grid_overlay_root,
     )
     loader_kwargs: dict[str, Any] = {}
     if int(num_workers) > 0:

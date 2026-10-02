@@ -55,6 +55,7 @@ except Exception:  # pragma: no cover
 
 from data.diffusion_dataset import build_diffusion_dataloader
 from data.encodec_utils import (
+    PRESNAP_TARGET_LAYOUT,
     extract_codebook_embeddings,
     load_audio_codec_model,
     load_target_pca_basis,
@@ -404,6 +405,12 @@ def _parse_args() -> argparse.Namespace:
         help="Decimate the cached drum grid to this rate at load time (0 = use cached rate).",
     )
     parser.add_argument(
+        "--grid-overlay-root",
+        type=str,
+        default="",
+        help="Optional MIDI-rerendered grid overlay; targets still come from --cache-root.",
+    )
+    parser.add_argument(
         "--use-bpm-training-geometry",
         action="store_true",
         help=(
@@ -578,6 +585,7 @@ def main() -> None:
             num_workers=int(args.num_workers),
             max_items=int(args.max_train_items),
             grid_rate_hz=float(args.grid_rate_hz),
+            grid_overlay_root=str(args.grid_overlay_root),
             pin_memory=pin_memory_enabled,
             persistent_workers=bool(persistent_workers),
             multiprocessing_context=dataloader_mp_context,
@@ -592,6 +600,7 @@ def main() -> None:
             num_workers=int(args.num_workers),
             max_items=int(args.max_val_items),
             grid_rate_hz=float(args.grid_rate_hz),
+            grid_overlay_root=str(args.grid_overlay_root),
             pin_memory=pin_memory_enabled,
             persistent_workers=bool(persistent_workers),
             multiprocessing_context=dataloader_mp_context,
@@ -681,7 +690,9 @@ def main() -> None:
         _optimizer_state_to_device(optimizer, device)
 
     target_pca_basis: dict[str, Any] | None = None
-    if init_payload is not None and init_payload.get("target_pca_basis") is not None:
+    if str(target_layout) == PRESNAP_TARGET_LAYOUT:
+        target_pca_basis = None
+    elif init_payload is not None and init_payload.get("target_pca_basis") is not None:
         target_pca_basis = load_target_pca_basis(
             init_payload["target_pca_basis"],
             device=device,
@@ -803,6 +814,7 @@ def main() -> None:
         "onset_loss_weighting": bool(args.onset_loss_weighting),
         "onset_token_radius": int(args.onset_token_radius),
         "grid_rate_hz": float(args.grid_rate_hz),
+        "grid_overlay_root": str(Path(args.grid_overlay_root).expanduser().resolve()) if str(args.grid_overlay_root).strip() else "",
         "fixed_sample_epochs": [int(epoch) for epoch in fixed_sample_epochs],
         "checkpoint_metric_name": str(checkpoint_metric_name),
         "sample_rate": int(sample_rate),
@@ -868,6 +880,7 @@ def main() -> None:
             step_noises=fixed_step_noises,
             x0_clip_norm=float(args.x0_clip_norm),
             target_pca_basis=target_pca_basis,
+            target_layout=target_layout,
             use_bpm_inference_geometry=bool(preview_use_bpm_inference_geometry),
             inference_num_beats=int(args.bpm_geometry_num_beats),
             target_token_rate_hz=float(target_token_rate_hz),
@@ -984,6 +997,7 @@ def main() -> None:
                 onset_loss_weighting=bool(args.onset_loss_weighting),
                 onset_token_radius=int(args.onset_token_radius),
                 target_pca_basis=target_pca_basis,
+                target_layout=target_layout,
                 use_bpm_training_geometry=bool(args.use_bpm_training_geometry),
                 bpm_geometry_num_beats=int(args.bpm_geometry_num_beats),
             )
@@ -1082,6 +1096,7 @@ def main() -> None:
                     onset_loss_weighting=bool(args.onset_loss_weighting),
                     onset_token_radius=int(args.onset_token_radius),
                     target_pca_basis=target_pca_basis,
+                    target_layout=target_layout,
                     use_bpm_training_geometry=bool(args.use_bpm_training_geometry),
                     bpm_geometry_num_beats=int(args.bpm_geometry_num_beats),
                 )

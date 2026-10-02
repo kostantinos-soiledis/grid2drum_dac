@@ -119,26 +119,148 @@ Windows are placed by time in seconds, not by grid index.
 
 Four branches use radii `r ∈ {0, 22, 41, 55}` grid steps (≈ 0, ±88, ±164,
 ±220 ms). The nonzero radii were chosen on training data: they are the
-offsets where the cumulative grid–latent correlation score reaches 50/75/90%
-(`code/experiment/scripts/analyze_frontend_radii.py`).
+offsets where the cumulative grid–latent correlation score reaches 50/75/90%.
 
-The grid-rate ablation decimates this 250 Hz grid when it is loaded
-(`code/experiment/data/grid_rate_downsample.py`):
+The grid-rate check keeps these window durations fixed in seconds:
 
-- velocities take the maximum over each group of frames;
-- counts are summed;
-- the articulation ID comes from the loudest onset in the group.
-
+- **90 and 120 Hz** decimate the 250 Hz grid when it is loaded
+  (`code/experiment/data/grid_rate_downsample.py`): velocities take the maximum
+  over each group of frames, counts are summed, and the articulation ID comes
+  from the loudest onset in the group. Radii become {0, 8, 15, 20} and
+  {0, 11, 20, 26}.
+- **500 Hz** cannot be derived from the 250 Hz grid without inventing timing
+  precision, so it is re-rendered from the source MIDI
+  (`code/experiment/scripts/build_grid_rate_overlay.py`) with radii
+  {0, 44, 82, 110}.
 
 Qualitative comparison against the direct PCA-regressor baseline:
 
 ![Qualitative spectrogram comparison](figures/spectrogram_comparison.png)
 
+## Final experiment
+
+Five comparisons, each answering one question. Every arm is scored on the same
+held-out test split (1,733 four-beat clips) in one joint evaluation.
+
+| Comparison | Arms (under `runs/final/`) | Question |
+| --- | --- | --- |
+| Representation | `presnap_latent` vs `postsnap_pca` | Should diffusion model native pre-snap DAC latents or a PCA of the post-snap latent? |
+| Regression | `postsnap_pca` vs `regression_6layer` | Does diffusion improve on deterministic direct regression? |
+| Capacity | `regression_6layer` vs `regression_8layer_capacity` | Is the regression result explained by model capacity? |
+| Grid rate (secondary) | `grid_hz/{90,120,250,500}hz` | How sensitive is the system to the conditioning-grid rate? |
+| RVQ supervision (secondary) | `postsnap_pca` vs `grid_hz/250hz` | Does the training-only RVQ cross-entropy term help? |
+
+The pre-snap arm does **not** use PCA: its 72 dimensions are the concatenation
+of nine native 8-D DAC quantizer projections before nearest-codebook snapping.
+The representation and regression arms use plain diffusion; the grid-rate arms
+add the RVQ-codebook cross-entropy term (weight 0.1). The 250 Hz grid-rate arm
+differs from `postsnap_pca` only in that term, so it doubles as the RVQ
+supervision arm; it is also the model behind the qualitative examples.
+
+### Results
+
+**Representation.** Does diffusion work better on native pre-snap DAC latents or post-snap PCA latents?
+
+| Arm | Mel MAE ↓ | Onset cosine ↑ | FAD∞ ↓ | Audio L1 ↓ | MR-STFT ↓ | Params |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| pre-snap native latent | 6.442 | 0.8204 | 0.04925 | 0.05287 | 0.11 | 91.85M |
+| post-snap PCA | 5.673 | 0.8517 | 0.01955 | 0.05343 | 0.106 | 91.85M |
+
+**Regression.** Does diffusion improve over deterministic direct regression?
+
+| Arm | Mel MAE ↓ | Onset cosine ↑ | FAD∞ ↓ | Audio L1 ↓ | MR-STFT ↓ | Params |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| diffusion | 5.673 | 0.8517 | 0.01955 | 0.05343 | 0.106 | 91.85M |
+| direct regression | 13.03 | 0.8355 | 0.3544 | 0.0451 | 0.1359 | 76.50M |
+
+**Capacity.** Is the direct-regression result explained by model capacity?
+
+| Arm | Mel MAE ↓ | Onset cosine ↑ | FAD∞ ↓ | Audio L1 ↓ | MR-STFT ↓ | Params |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 6-layer regression | 13.03 | 0.8355 | 0.3544 | 0.0451 | 0.1359 | 76.50M |
+| 8-layer capacity control | 13.51 | 0.8375 | 0.3532 | 0.04474 | 0.1353 | 101.69M |
+
+**Grid Hz.** How sensitive is the system to the conditioning-grid rate?
+
+| Arm | Mel MAE ↓ | Onset cosine ↑ | FAD∞ ↓ | Audio L1 ↓ | MR-STFT ↓ | Params |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 90 Hz | 5.309 | 0.8416 | 0.02046 | 0.05404 | 0.106 | 91.85M |
+| 120 Hz | 5.199 | 0.8471 | 0.01904 | 0.05262 | 0.1031 | 91.85M |
+| 250 Hz | 5.471 | 0.8606 | 0.02041 | 0.0517 | 0.1039 | 91.85M |
+| 500 Hz (MIDI re-render) | 5.611 | 0.8705 | 0.0188 | 0.04994 | 0.1046 | 91.85M |
+
+**RVQ supervision.** Does the training-only RVQ cross-entropy term help post-snap PCA diffusion?
+
+| Arm | Mel MAE ↓ | Onset cosine ↑ | FAD∞ ↓ | Audio L1 ↓ | MR-STFT ↓ | Params |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| plain diffusion | 5.673 | 0.8517 | 0.01955 | 0.05343 | 0.106 | 91.85M |
+| diffusion + RVQ-CE | 5.471 | 0.8606 | 0.02041 | 0.0517 | 0.1039 | 91.85M |
+
+Significance (source-recording-clustered sign-flip tests, 71 recordings,
+5000 resamples; `results/final/stats/`):
+
+- **Representation:** post-snap PCA beats pre-snap on mel MAE (−0.77 dB),
+  onset cosine (+0.031) and MR-STFT (all p < 0.001); waveform L1 does not differ.
+- **Regression:** diffusion beats direct regression on mel MAE (−7.4 dB),
+  MR-STFT (p < 0.001) and onset cosine (p = 0.01). Regression has lower
+  waveform L1 (p < 0.001), as expected from a deterministic mean predictor.
+- **Capacity:** the 8-layer regressor does not close the gap; it is slightly
+  worse on mel MAE (+0.47 dB, p < 0.001) and indistinguishable elsewhere.
+- **Grid rate (vs 250 Hz):** onset cosine rises with grid rate (90 Hz −0.019,
+  120 Hz −0.014, both p ≤ 0.012; 500 Hz +0.010, p = 0.06), while mel MAE is
+  lowest at 120 Hz (−0.27 dB, p < 0.001); 500 Hz has the lowest waveform L1
+  (p = 0.011). FAD∞ stays within 0.019–0.020 for every rate.
+- **RVQ supervision:** RVQ-CE improves mel MAE (−0.20 dB, p = 0.024) and
+  MR-STFT (p = 0.004); onset cosine and waveform L1 do not differ
+  significantly.
+
+### Runs
+
+| Arm | Model | Params | Selected epoch |
+| --- | --- | ---: | ---: |
+| `postsnap_pca` | DiT diffusion, post-snap PCA-72 | 91.85 M | 148 |
+| `presnap_latent` | DiT diffusion, pre-snap latent-72 | 91.85 M | 114 |
+| `regression_6layer` | direct regression, 6 layers | 76.50 M | 14 |
+| `regression_8layer_capacity` | direct regression, 8 layers | 101.69 M | 14 |
+| `grid_hz/90hz` | RVQ-CE diffusion, 90 Hz grid | 91.85 M | 141 |
+| `grid_hz/120hz` | RVQ-CE diffusion, 120 Hz grid | 91.85 M | 141 |
+| `grid_hz/250hz` | RVQ-CE diffusion, 250 Hz grid | 91.85 M | 146 |
+| `grid_hz/500hz` | RVQ-CE diffusion, 500 Hz grid (MIDI re-render) | 91.85 M | 147 |
+
+All arms train for 150 epochs with seed 1234, AdamW (learning rate and weight
+decay 1e−4), batch size 4 and gradient clipping at 1; the 500 Hz arm uses
+microbatch 1 with 4-step gradient accumulation. The checkpoint with the lowest
+validation loss is kept. Diffusion arms use a 6-layer, 768-wide DiT denoiser
+with 25 sampling steps; the regressors are 1024 wide and trained with a Huber
+loss (β = 0.25).
+
+Exports use sampling seed 1234 and one sample per grid, clip the predicted x₀
+to [−6, 6], and apply a 10 ms crossfade at beat boundaries.
+
+### Reproduce
+
+Run the complete pipeline serially on one GPU:
+
+```bash
+./run_final_results.sh --python /path/to/your/torch-python --device cuda:0
+```
+
+Inspect it without executing work:
+
+```bash
+./run_final_results.sh --dry-run
+```
+
+The runner resumes incomplete training, reuses completed checkpoints and
+exports, evaluates every arm together, and writes the readable entry point to
+`results/final/summary.md`. Use `./run_final_results.sh --help` for cache and
+dataset overrides. Acoustic scoring uses the same GPU as `--device` unless
+`--score-device` is explicitly set.
 
 ## Using the repo
 
-The full pipeline is cache → train → evaluate. Every script accepts `--help`
-for the complete option list; the commands below show the main entry points.
+The pipeline is cache → train → evaluate. Every script accepts `--help` for
+the complete option list; the commands below show the main entry points.
 
 ### 1. Build caches
 
@@ -157,6 +279,18 @@ python code/experiment/scripts/build_diffusion_cache.py \
   --source-cache-root runs/source_cache \
   --out-root runs/diffusion_cache \
   --split train
+
+# Native pre-snap DAC latent targets (no PCA), sharing the grids above
+python code/experiment/scripts/build_presnap_cache.py \
+  --src-cache runs/diffusion_cache --out-root runs/presnap_cache \
+  --dataset-root /path/to/gmd --device cuda
+python code/experiment/scripts/build_presnap_cache.py \
+  --src-cache runs/diffusion_cache --out-root runs/presnap_cache --finalize
+
+# 500 Hz conditioning grids re-rendered from MIDI
+python code/experiment/scripts/build_grid_rate_overlay.py \
+  --base-cache runs/diffusion_cache --out-root runs/grid500_overlay \
+  --dataset-root /path/to/gmd --rate-hz 500
 ```
 
 ### 2. Train
@@ -168,11 +302,14 @@ python code/experiment/train_cli.py \
   --out-dir runs/my_diffusion \
   --device cuda
 
-# Sketch expander (drum-grid sketch -> conditioning)
-python code/experiment/train_sketch_expander_cli.py \
+# Deterministic direct-regression baseline
+python code/experiment/standalone_direct_pca_regressor.py \
   --cache-root runs/diffusion_cache \
-  --out-dir runs/my_sketch_expander
+  --out-dir runs/my_regressor \
+  --device cuda
 ```
+
+`run_final_results.sh` shows the exact flags of every final arm.
 
 ### 3. Evaluate
 
@@ -183,52 +320,16 @@ python code/experiment/scripts/run_diffusion_acoustic_eval.py \
   --split test
 ```
 
-Exports predictions and runs the acoustic evaluation (metrics, FAD, plots).
-The paper's aggregated metrics and full evaluation outputs live under
-[results/paper_results/](results/paper_results/), and
-`code/experiment/scripts/build_paper_results.py` reassembles them.
+This exports predictions and runs the acoustic evaluation (metrics, FAD,
+plots). The checkpoint above is the committed copy of `postsnap_pca`.
 
-The paper's paired confidence intervals and significance tests come from
+Paired confidence intervals and significance tests come from
 `code/experiment/scripts/clustered_paired_stats.py`. It clusters by source
 recording: a percentile bootstrap over recordings, plus sign-flip permutation
-tests that flip all clips of a recording together (the paper uses
-`--reps 5000 --seed 1234`). It reads a per-clip metrics CSV and needs no GPU.
+tests that flip all clips of a recording together (`--reps 5000 --seed 1234`).
+It reads a per-clip metrics CSV and needs no GPU.
 
-## Paper runs and metric settings
-
-### Runs and selected epochs
-
-All runs use seed 1234, AdamW (learning rate and weight decay 1e−4), batch
-size 4 and gradient clipping at 1. The checkpoint with the lowest validation
-loss is kept (for auxiliary runs, the validation loss includes the RVQ
-cross-entropy term).
-
-| System | Run directory under `runs/` | Budget (epochs) | Selected epoch |
-| --- | --- | ---: | ---: |
-| Direct regression, 6 layers (76.50 M) | `runs_direct/direct_pca_d1024_l6_seed1234` | 150 | 14 |
-| Direct regression, 8 layers (101.69 M) | `runs_direct/direct_pca_d1024_l8_seed1234` | 150 (stopped at 78) | 12 |
-| Plain diffusion, 6 steps | `runs_dac/dac_6steps` | 150 | 148 |
-| Plain diffusion, 12 steps | `runs_dac/dac_12steps` | 150 | 133 |
-| Plain diffusion, 25 steps | `runs_dac/dac_25steps` | 150 | 148 |
-| Plain diffusion, 50 steps | `runs_dac/dac_50steps` | 150 | 146 |
-| Auxiliary diffusion, 6 steps | `runs_dac_ce/dac_6steps` | 150 | 143 |
-| Auxiliary diffusion, 12 steps | `runs_dac_ce/dac_12steps` | 150 | 143 |
-| Auxiliary diffusion, 25 steps | `runs_dac_ce/dac_25steps` | 150 | 146 |
-| Auxiliary diffusion, 25 steps, 90 Hz grid | `runs_dac_ce/grid_rate_ablation/grid90hz_25steps` | 75 | 72 |
-| Auxiliary diffusion, 25 steps, 120 Hz grid | `runs_dac_ce/grid_rate_ablation/grid120hz_25steps` | 75 | 72 |
-
-Conditioning ablations (zero grid, single-scale linear encoders with r = 0 and
-r = 22) use a 75-epoch budget. No 50-step auxiliary model was trained.
-
-Main-table exports use:
-
-- sampling seed 1234, batch size 8, one sample per grid;
-- the predicted x₀ clipped to [−6, 6];
-- no beat-boundary crossfade.
-
-The grid-rate arms were exported with a 10 ms beat crossfade and batch size 4.
-
-### Metric settings
+## Metric settings
 
 All metrics compare against DAC-decoded cached targets, not the original
 recordings. Predictions are trimmed or zero-padded to the reference length,
@@ -259,3 +360,22 @@ and no time-shift alignment is applied.
 
 Peak normalization means none of these metrics measure absolute gain or
 loudness.
+
+## Repository layout
+
+- [`run_final_results.sh`](run_final_results.sh): the canonical serial experiment.
+- [`code/experiment/`](code/experiment/): training, export, evaluation,
+  statistics and cache code ([`code/README.md`](code/README.md)).
+- [`code/demo/`](code/demo/): the local listener app; its weights are listed in
+  [`runs/weights/manifest.json`](runs/weights/manifest.json).
+- [`runs/`](runs/): final run configs and histories, plus the demo's committed
+  checkpoints ([`runs/README.md`](runs/README.md)).
+- [`results/`](results/): the final comparison tables, joint evaluation and
+  statistics ([`results/README.md`](results/README.md)).
+- [`figures/`](figures/): README figures.
+
+Install Python dependencies with:
+
+```bash
+pip install -r requirements.txt
+```

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import shutil
 import sys
 import time
@@ -131,7 +132,21 @@ def main() -> None:
         torch.cuda.reset_peak_memory_stats(device)
 
     payload = dict(torch.load(checkpoint_path, map_location="cpu", weights_only=False))
-    cfg = DirectRegressorConfig(**dict(payload["config"]))
+    config_payload = dict(payload["config"])
+    # Older checkpoints carry retired fields; drop them only when inert, since a
+    # non-default value changed behaviour the current model cannot reproduce.
+    known_fields = {field.name for field in dataclasses.fields(DirectRegressorConfig)}
+    retired = {key: config_payload.pop(key) for key in list(config_payload) if key not in known_fields}
+    inert_retired_defaults = {"cond_dropout_prob": 0.0}
+    for key, value in sorted(retired.items()):
+        expected = inert_retired_defaults.get(key, None)
+        if expected is None or float(value) != float(expected):
+            raise ValueError(
+                f"checkpoint {checkpoint_path} sets retired config field {key}={value!r}, "
+                "which the current model cannot reproduce; re-train or add explicit support"
+            )
+        print(f"[warn] dropping inert retired config field {key}={value!r} from {checkpoint_path}")
+    cfg = DirectRegressorConfig(**config_payload)
     model = DirectPCASequenceRegressor(cfg).to(device).eval()
     model.load_state_dict(dict(payload["model_state_dict"]))
     target_mean = torch.as_tensor(payload["target_mean"], dtype=torch.float32, device=device).view(-1)

@@ -1464,6 +1464,10 @@ def ensure_fad_embeddings_cached(
             embedding_done_initial[directory_path] = int(existing_count)
     if not missing_dirs:
         return
+    # The embedding subprocess shares the GPU with this process; release the
+    # allocator cache left by earlier scoring or the CLAP model cannot load.
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     worker_schedule: List[int] = [max(1, int(workers))]
     if int(worker_schedule[0]) > 1:
         worker_schedule.append(1)
@@ -1484,6 +1488,8 @@ def ensure_fad_embeddings_cached(
         raw_output = ""
         return_code = 0
         process_env = dict(os.environ)
+        # librosa's numba kernels fail to import under NUMBA_DISABLE_JIT once the numba cache is cold.
+        process_env.pop("NUMBA_DISABLE_JIT", None)
         process_env.setdefault("TORCH_HOME", str((Path(tempfile.gettempdir()) / "torch-hub-cache").resolve()))
         process_env.setdefault("MPLCONFIGDIR", str((Path(tempfile.gettempdir()) / "matplotlib-drum-rendering").resolve()))
         fad_cuda_visible_devices = _cuda_visible_devices_for_device(str(device))

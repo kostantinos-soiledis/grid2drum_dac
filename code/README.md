@@ -1,107 +1,35 @@
-# Code
+# Experiment code
 
-Install dependencies from the repository root:
-
-```bash
-pip install -r requirements.txt
-```
-
-## Cache Creation
-
-Build the aligned source cache from local dataset files:
+The active experiment surface is intentionally small. From the repository root,
+run:
 
 ```bash
-cd code/experiment
-python scripts/build_source_cache.py --source-root /path/to/e-gmd --out-root ../../runs/source_cache
+./run_final_results.sh --python /path/to/your/torch-python --device cuda:0
 ```
 
-Build the framewise diffusion cache from a source cache:
+The runner is serial, resumable, and owns the canonical run/result names. Use
+`--dry-run` to inspect every command and `--help` for cache overrides.
 
-```bash
-python scripts/build_diffusion_cache.py \
-  --source-cache-root ../../runs/source_cache \
-  --out-root ../../runs/diffusion_cache \
-  --split train
-```
+Active entry points:
 
-The packaged repo includes only `runs/mini_cache` for demo/smoke inference.
-Full cache creation requires the external dataset files.
+- `experiment/train_cli.py`: diffusion training;
+- `experiment/standalone_direct_pca_regressor.py`: direct regression;
+- `experiment/scripts/build_source_cache.py` and `build_diffusion_cache.py`:
+  base cache construction;
+- `experiment/scripts/build_presnap_cache.py`: native pre-snap DAC targets,
+  with no PCA transform;
+- `experiment/scripts/build_grid_rate_overlay.py`: true higher-rate frontend
+  grids re-rendered from MIDI while reusing the canonical audio targets;
+- `experiment/scripts/export_*_predictions.py`: deterministic exports;
+- `experiment/scripts/run_diffusion_acoustic_eval.py`: shared acoustic scoring;
+- `experiment/scripts/clustered_paired_stats.py`: source-clustered inference;
+- `experiment/scripts/summarize_final_results.py`: readable result tables;
+- `experiment/scripts/relativize_artifact_paths.py`: rewrites absolute
+  workstation paths in run/result artifacts as repo-relative paths.
 
-## Training
+`demo/` is the local listener app (grid editor, generation, and comparison
+against the regression baseline); see [`demo/README.md`](demo/README.md).
 
-Train the diffusion model:
-
-```bash
-cd code/experiment
-python train_cli.py --cache-root ../../runs/diffusion_cache --out-dir ../../runs/model_train
-```
-
-Train the sketch expander:
-
-```bash
-python train_sketch_expander_cli.py --cache-root ../../runs/diffusion_cache --out-dir ../../runs/sketch_expander_train
-```
-
-Train the direct PCA baseline:
-
-```bash
-python standalone_direct_pca_regressor.py --cache-root ../../runs/diffusion_cache --out-dir ../../runs/runs_direct/direct_pca_regressor
-```
-
-## Evaluation
-
-Export diffusion predictions:
-
-```bash
-python scripts/export_best_diffusion_predictions.py \
-  --train-dir ../../runs/runs_dac/dac_25steps \
-  --cache-root ../../runs/mini_cache \
-  --out-dir ../../results/smoke_predictions \
-  --max-items 1 \
-  --overwrite
-```
-
-Evaluate exported WAVs:
-
-```bash
-python scripts/evaluate_diffusion_predictions.py \
-  --cache-root ../../runs/mini_cache \
-  --predictions-dir ../../results/smoke_predictions \
-  --max-items 1 \
-  --overwrite
-```
-
-Aggregate existing paper result artifacts:
-
-```bash
-python scripts/build_paper_results.py --repo-root ../../runs --out-dir ../../results/paper_results
-```
-
-## Demo
-
-Run a deterministic CLI smoke test:
-
-```bash
-cd code/demo
-python scripts/sketch_diffusion_infer.py \
-  --sketch-json smoke_sketch.json \
-  --sketch-checkpoint ../../runs/sketch_expander_dac44_native_v5/best_sketch_expander.pt \
-  --diffusion-train-dir ../../runs/runs_dac/dac_25steps \
-  --cache-root ../../runs/mini_cache \
-  --device cpu \
-  --out-dir /tmp/drumtogrid_smoke_audio \
-  --overwrite
-```
-
-Run the verified CLI demo smoke:
-
-```bash
-python scripts/sketch_diffusion_infer.py \
-  --sketch-json smoke_sketch.json \
-  --sketch-checkpoint ../../runs/sketch_expander_dac44_native_v5/best_sketch_expander.pt \
-  --diffusion-train-dir ../../runs/runs_dac/dac_25steps \
-  --cache-root ../../runs/mini_cache \
-  --device cpu \
-  --out-dir /tmp/drumtogrid_smoke_audio \
-  --overwrite
-```
+Earlier frontend, native-subspace, overnight, sketch-expander, and paper
+aggregation scripts were retired with the results reset and remain in the git
+history.
