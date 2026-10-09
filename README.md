@@ -2,7 +2,7 @@
 
 Drum-grid–conditioned audio generation via latent diffusion in a PCA subspace of the DAC codec.
 
-**▶ Listen first: [live demo page](https://anonymous.4open.science/w/grid2drum_dac-A24F/)** — side-by-side generated, regressor-baseline, and ground-truth drum audio for held-out examples, plus the final results tables.
+**▶ Listen first: [live demo page](https://anonymous.4open.science/w/grid2drum_dac-A24F/)** — twelve GMD test bars: the conditioning grid, the recording, our model's output, and TRIA's prompts next to its outputs.
 
 ## How it works
 
