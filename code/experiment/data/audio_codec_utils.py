@@ -21,7 +21,50 @@ DEFAULT_CODEC_FAMILY = "encodec"
 DEFAULT_CODEC_MODEL_ID = "facebook/encodec_32khz"
 DEFAULT_DAC_CODEC_MODEL_ID = "descript/dac_44khz"
 DEFAULT_SHAME_CODEC_MODEL_ID = "stabilityai/SAME-L"
+DEFAULT_SAO_CODEC_MODEL_ID = "stabilityai/stable-audio-open-1.0"
 DEFAULT_ENCODEC_BANDWIDTH = 2.2
+SAO_SAMPLE_RATE = 44100
+SAO_HOP_LENGTH = 2048
+SAO_LATENT_DIM = 64
+# The Stable Audio Open 1.0 VAE (its pretransform autoencoder, vae_model.ckpt).
+# It is stereo; mono audio is encoded as dual mono and decoded to the channel mean.
+SAO_VAE_CONFIG: dict[str, Any] = {
+    "model_type": "autoencoder",
+    "sample_size": 2_097_152,
+    "sample_rate": SAO_SAMPLE_RATE,
+    "audio_channels": 2,
+    "model": {
+        "encoder": {
+            "type": "oobleck",
+            "requires_grad": False,
+            "config": {
+                "in_channels": 2,
+                "channels": 128,
+                "c_mults": [1, 2, 4, 8, 16],
+                "strides": [2, 4, 4, 8, 8],
+                "latent_dim": 2 * SAO_LATENT_DIM,
+                "use_snake": True,
+            },
+        },
+        "decoder": {
+            "type": "oobleck",
+            "requires_grad": False,
+            "config": {
+                "out_channels": 2,
+                "channels": 128,
+                "c_mults": [1, 2, 4, 8, 16],
+                "strides": [2, 4, 4, 8, 8],
+                "latent_dim": SAO_LATENT_DIM,
+                "use_snake": True,
+                "final_tanh": False,
+            },
+        },
+        "bottleneck": {"type": "vae"},
+        "latent_dim": SAO_LATENT_DIM,
+        "downsampling_ratio": SAO_HOP_LENGTH,
+        "io_channels": 2,
+    },
+}
 LEGACY_TARGET_LAYOUT = "framewise_sum_t128"
 DEFAULT_TARGET_LAYOUT = "framewise_sum"
 PCA_TARGET_LAYOUT = "framewise_pca"
@@ -108,11 +151,13 @@ def _temporary_full_context_encodec(codec_model: Any):
 
 def infer_codec_family(*, codec_family: str | None = None, codec_model_id: str | None = None) -> str:
     family_eff = str(codec_family or "").strip().lower()
-    if family_eff in {"encodec", "dac", "shame"}:
+    if family_eff in {"encodec", "dac", "shame", "sao"}:
         return family_eff
     model_id = str(codec_model_id or "").strip().lower()
     if model_id.startswith("stabilityai/same") or model_id == "same-l":
         return "shame"
+    if "stable-audio-open" in model_id:
+        return "sao"
     if "dac" in model_id:
         return "dac"
     return "encodec"
@@ -284,6 +329,57 @@ def _build_dac_metadata(
     )
 
 
+def sao_codec_metadata(codec_model_id: str = DEFAULT_SAO_CODEC_MODEL_ID) -> AudioCodecMetadata:
+    return AudioCodecMetadata(
+        codec_family="sao",
+        codec_model_id=str(codec_model_id),
+        codec_sample_rate=int(SAO_SAMPLE_RATE),
+        codec_audio_channels=1,
+        codec_frame_rate=float(SAO_SAMPLE_RATE) / float(SAO_HOP_LENGTH),
+        codec_codebook_size=0,
+        codec_num_codebooks=0,
+        codec_target_dim=int(SAO_LATENT_DIM),
+        codec_hop_length=int(SAO_HOP_LENGTH),
+    )
+
+
+def _load_sao_vae(model_id: str, device: str) -> Any:
+    try:
+        from huggingface_hub import hf_hub_download
+        from stable_audio_tools.models.factory import create_model_from_config
+        from stable_audio_tools.models.utils import copy_state_dict, load_ckpt_state_dict
+    except ModuleNotFoundError as exc:  # pragma: no cover
+        raise RuntimeError(
+            "The SAO codec needs stable_audio_tools and huggingface_hub in the active Python environment."
+        ) from exc
+    try:
+        checkpoint_path = hf_hub_download(model_id, "vae_model.ckpt", local_files_only=True)
+    except Exception:
+        checkpoint_path = hf_hub_download(model_id, "vae_model.ckpt")
+    model = create_model_from_config(SAO_VAE_CONFIG)
+    copy_state_dict(model, load_ckpt_state_dict(checkpoint_path))
+    model = model.to(device).eval()
+    if (int(model.sample_rate), int(model.latent_dim), int(model.downsampling_ratio)) != (
+        int(SAO_SAMPLE_RATE),
+        int(SAO_LATENT_DIM),
+        int(SAO_HOP_LENGTH),
+    ):
+        raise RuntimeError("loaded SAO VAE does not match the expected 44.1 kHz / 64-d / 2048-hop contract")
+    return model
+
+
+@torch.no_grad()
+def encode_audio_to_sao_latents(codec_model: Any, audio_bt: torch.Tensor) -> torch.Tensor:
+    """Mono [B,N] audio -> SAO posterior means [B, ceil(N / hop), 64]."""
+    audio = torch.as_tensor(audio_bt, dtype=torch.float32)
+    if int(audio.dim()) != 2:
+        raise ValueError(f"audio_bt must be [B,N], got {tuple(audio.shape)}")
+    num_frames = int(math.ceil(int(audio.shape[-1]) / int(SAO_HOP_LENGTH)))
+    stereo = F.pad(audio.unsqueeze(1).repeat(1, 2, 1), (0, num_frames * int(SAO_HOP_LENGTH) - int(audio.shape[-1])))
+    posterior = codec_model.encoder(stereo)
+    return posterior.chunk(2, dim=1)[0][..., :num_frames].transpose(1, 2).contiguous()
+
+
 def attach_audio_codec_metadata(model: Any, metadata: AudioCodecMetadata) -> Any:
     setattr(model, "_pca_diffusion_codec_metadata", metadata.to_dict())
     return model
@@ -337,6 +433,8 @@ def load_audio_codec_model(
             if family == "dac"
             else DEFAULT_SHAME_CODEC_MODEL_ID
             if family == "shame"
+            else DEFAULT_SAO_CODEC_MODEL_ID
+            if family == "sao"
             else DEFAULT_CODEC_MODEL_ID
         )
     ).strip()
@@ -433,6 +531,9 @@ def load_audio_codec_model(
         setattr(model, "_pca_diffusion_same_model_config", dict(same_model_config or {}))
         setattr(model, "_pca_diffusion_same_device", str(resolved_device))
         setattr(model, "_pca_diffusion_same_use_half", bool(same_use_half))
+    elif family == "sao":
+        model = _load_sao_vae(model_id, resolved_device)
+        meta_obj = sao_codec_metadata(model_id)
     else:  # pragma: no cover
         raise ValueError(f"unsupported codec_family={family!r}")
 
@@ -487,8 +588,8 @@ def extract_codebook_embeddings(
     ) or get_audio_codec_metadata(codec_model)
     family = _resolve_codec_family_from_model(codec_model, meta_obj)
 
-    if family == "shame":
-        raise ValueError("SHAME/SAME is a continuous latent codec and does not expose RVQ codebook embeddings")
+    if family in {"shame", "sao"}:
+        raise ValueError(f"{family} is a continuous latent codec and does not expose RVQ codebook embeddings")
     if family == "dac":
         quantizers = list(getattr(getattr(codec_model, "quantizer", None), "quantizers", []) or [])
         if not quantizers:
@@ -619,8 +720,8 @@ def encode_audio_batch_to_codes(
     ) or get_audio_codec_metadata(codec_model)
     family = _resolve_codec_family_from_model(codec_model, meta_obj)
 
-    if family == "shame":
-        raise ValueError("SHAME/SAME is a continuous latent codec and does not expose discrete audio codes")
+    if family in {"shame", "sao"}:
+        raise ValueError(f"{family} is a continuous latent codec and does not expose discrete audio codes")
     if family == "dac":
         encoded = codec_model.encode(
             audio,
@@ -796,8 +897,8 @@ def decode_codes_to_audio_b1t(
         )
         quantized_latent = rvq_sum_latents(latents_bctd, valid_bt=valid_bt)
         return decode_quantized_latent_to_audio(codec_model, quantized_latent)
-    if family == "shame":
-        raise ValueError("SHAME/SAME is a continuous latent codec and does not expose discrete audio codes")
+    if family in {"shame", "sao"}:
+        raise ValueError(f"{family} is a continuous latent codec and does not expose discrete audio codes")
     audio_codes = codes.unsqueeze(0).contiguous()
     decoded = codec_model.decode(audio_codes, [None], padding_mask=None).audio_values
     audio = decoded.to(device=device, dtype=torch.float32)
@@ -818,6 +919,9 @@ def decode_quantized_latent_to_audio(
     meta_obj = get_audio_codec_metadata(codec_model)
     family = _resolve_codec_family_from_model(codec_model, meta_obj)
     z_q = latent.transpose(1, 2).contiguous()
+    if family == "sao":
+        audio = codec_model.decode(z_q.to(device=next(codec_model.parameters()).device))
+        return audio.to(device=latent.device, dtype=torch.float32).mean(dim=1, keepdim=True).contiguous()
     if family == "dac":
         audio = _decode_dac_with_cudnn_fallback(codec_model, quantized_representation=z_q)
         audio = torch.as_tensor(audio, dtype=torch.float32, device=latent.device)
@@ -1013,6 +1117,8 @@ def requantize_latent_to_codes_bct(
         else _audio_codec_meta_from_mapping(metadata if isinstance(metadata, Mapping) else None)
     ) or get_audio_codec_metadata(codec_model)
     family = _resolve_codec_family_from_model(codec_model, meta_obj)
+    if family in {"shame", "sao"}:
+        raise ValueError(f"{family} is a continuous latent codec and cannot be requantized to codes")
     z_q = latent.transpose(1, 2).contiguous()
     if family == "dac":
         _zq, audio_codes, _projected, _commitment, _codebook = codec_model.quantizer(

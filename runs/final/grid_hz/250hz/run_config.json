@@ -18,7 +18,7 @@
   "batch_size": 4,
   "bpm_geometry_num_beats": 4,
   "bpm_training_geometry_preserve_cached_frame_counts": true,
-  "cache_root": "<DRUMTOGRID_ROOT>/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+  "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
   "checkpoint_metric_name": "val_loss",
   "codec_metadata": {
     "codec_audio_channels": 1,
@@ -218,7 +218,7 @@
   "seed": 1234,
   "target_full_dim": 1024,
   "target_layout": "framewise_pca",
-  "target_pca_basis_path": "<DRUMTOGRID_ROOT>/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1/pca_basis.pt",
+  "target_pca_basis_path": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1/pca_basis.pt",
   "target_token_rate_hz": 86.1328125,
   "timbre_probe_metadata": {},
   "timbre_probe_path": "",

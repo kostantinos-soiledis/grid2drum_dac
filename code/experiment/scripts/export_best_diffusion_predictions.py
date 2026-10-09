@@ -55,7 +55,6 @@ from io_utils import save_audio, write_json, write_jsonl
 from model import (
     DEFAULT_BEAT_CROSSFADE_MS,
     DEFAULT_INFERENCE_NUM_BEATS,
-    DEFAULT_SAMPLE_X0_CLIP_NORM,
     _prepare_batch_tensors,
     apply_beat_crossfade,
     ConditionalDiffusionTransformer,
@@ -140,7 +139,13 @@ def _parse_args() -> argparse.Namespace:
         default="",
         help="Optional MIDI-rerendered grid overlay used during training.",
     )
-    parser.add_argument("--x0-clip-norm", type=float, default=DEFAULT_SAMPLE_X0_CLIP_NORM)
+    parser.add_argument(
+        "--x0-clip-bound",
+        type=float,
+        default=None,
+        help="Override the checkpoint's x0 clip bound (checkpoints trained before it was recorded "
+        "need it: 6 for the published GMD runs).",
+    )
     parser.add_argument("--num-steps", type=int, default=400)
     parser.add_argument("--num-beats", type=int, default=DEFAULT_INFERENCE_NUM_BEATS)
     parser.add_argument(
@@ -349,6 +354,13 @@ def main() -> None:
         device=device,
         fallback_num_steps=int(args.num_steps),
     )
+    x0_clip_bound = args.x0_clip_bound if args.x0_clip_bound is not None else checkpoint_payload.get("x0_clip_bound")
+    if x0_clip_bound is None:
+        raise ValueError(
+            f"{checkpoint_path} records no x0_clip_bound; pass --x0-clip-bound "
+            "(6 for the published GMD runs). Unclipped sampling decodes to noise."
+        )
+    x0_clip_bound = float(x0_clip_bound)
     refiner_model = None
     refiner_payload: dict[str, Any] = {}
     if str(args.refiner_checkpoint).strip() and not bool(args.disable_refiner):
@@ -435,8 +447,8 @@ def main() -> None:
             diffusion=diffusion,
             batch=ablated_batch,
             device=device,
-            x0_clip_norm=float(args.x0_clip_norm) if args.x0_clip_norm is not None else None,
             sample_seed=(int(args.sample_seed) + int(batch_index) if int(args.sample_seed) >= 0 else None),
+            x0_clip_bound=x0_clip_bound,
             use_bpm_inference_geometry=bool(args.use_bpm_inference_geometry),
             inference_num_beats=int(args.num_beats),
             target_token_rate_hz=float(target_token_rate_hz),
@@ -530,7 +542,7 @@ def main() -> None:
         "batch_size": int(args.batch_size),
         "sample_seed": (int(args.sample_seed) if int(args.sample_seed) >= 0 else None),
         "samples_per_conditioning_input": 1,
-        "x0_clip_norm": float(args.x0_clip_norm) if args.x0_clip_norm is not None else None,
+        "x0_clip_bound": float(x0_clip_bound),
         "use_bpm_inference_geometry": bool(args.use_bpm_inference_geometry),
         "inference_num_beats": int(args.num_beats),
         "beat_crossfade_ms": float(args.beat_crossfade_ms),

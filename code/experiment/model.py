@@ -24,7 +24,7 @@ from data.encodec_utils import (
     snap_presnap_latent_to_codes_bct,
     token_ids_to_codebook_embeddings,
 )
-from data.diffusion_dataset import estimate_target_normalization
+from data.diffusion_dataset import estimate_target_normalization, estimate_target_range
 from data.seconds_frontend import build_seconds_frontend_from_cfg
 
 
@@ -39,7 +39,6 @@ DEFAULT_FRONTEND_STEP_SECONDS = 0.0
 DEFAULT_FRONTEND_CHUNK_SIZE = 0
 DEFAULT_FRONTEND_CLASS_LOCAL_DIM = 8
 DEFAULT_FRONTEND_CONCAT_MULTISCALE = True
-DEFAULT_SAMPLE_X0_CLIP_NORM = 6.0
 DEFAULT_AUDIO_WAVE_L1_WEIGHT = 0.0
 DEFAULT_AUDIO_MRSTFT_WEIGHT = 0.0
 DEFAULT_AUDIO_MRSTFT_RESOLUTIONS: tuple[tuple[int, int], ...] = (
@@ -1327,6 +1326,21 @@ def _rvq_cross_entropy_loss(
     return total / denom.clamp_min(1.0e-8)
 
 
+def clip_x0(x0_hat: torch.Tensor, bound: float | None) -> torch.Tensor:
+    """Clamp a standardized clean-latent estimate to the codec's training range.
+
+    The noise schedule ends at alpha_bar ~ 0, where x0 = (x_t - sqrt(1 - alpha_bar) eps) /
+    sqrt(alpha_bar) multiplies any noise-prediction error by ~500. Unbounded, that estimate
+    throws the first reverse step off and the decoded audio is noise, so sampling needs it.
+    Training reads the unclipped estimate: clipping it there gave no benefit (and a lower
+    onset cosine) in a matched-epoch test. The bound is each codec's own largest
+    standardized training value (see load_or_compute_x0_clip_bound).
+    """
+    if bound is None:
+        return x0_hat
+    return x0_hat.clamp(min=-float(bound), max=float(bound))
+
+
 def diffusion_train_step(
     model: ConditionalDiffusionTransformer,
     diffusion: GaussianDiffusion1D,
@@ -1340,7 +1354,6 @@ def diffusion_train_step(
     audio_wave_l1_weight: float = DEFAULT_AUDIO_WAVE_L1_WEIGHT,
     audio_mrstft_weight: float = DEFAULT_AUDIO_MRSTFT_WEIGHT,
     audio_mrstft_resolutions: Sequence[tuple[int, int]] = DEFAULT_AUDIO_MRSTFT_RESOLUTIONS,
-    x0_clip_norm: float | None = DEFAULT_SAMPLE_X0_CLIP_NORM,
     x0_mse_weight: float = 0.0,
     quant_embed_mse_weight: float = 0.0,
     rvq_ce_weight: float = 0.0,
@@ -1414,8 +1427,6 @@ def diffusion_train_step(
     loss_per_bt = ((pred_eps - noise) ** 2).mean(dim=-1)
     diffusion_loss = loss_per_bt[target_mask].mean()
     x0_hat = diffusion.predict_x0_from_eps(x_t, t, pred_eps)
-    if x0_clip_norm is not None:
-        x0_hat = x0_hat.clamp(min=-float(x0_clip_norm), max=float(x0_clip_norm))
     x0_hat = apply_seq_mask(x0_hat, target_mask)
 
     loss = diffusion_loss
@@ -1595,7 +1606,6 @@ def sample_ddpm(
     diffusion: GaussianDiffusion1D,
     batch: Mapping[str, Any],
     device: torch.device,
-    x0_clip_norm: float | None = DEFAULT_SAMPLE_X0_CLIP_NORM,
     sample_idx: int | None = None,
     start_noise: torch.Tensor | None = None,
     step_noises: Mapping[int, torch.Tensor] | None = None,
@@ -1604,6 +1614,8 @@ def sample_ddpm(
     inference_num_beats: int = DEFAULT_INFERENCE_NUM_BEATS,
     target_token_rate_hz: float = DEFAULT_TARGET_TOKEN_RATE_HZ,
     inference_geometry: Mapping[str, Any] | None = None,
+    *,
+    x0_clip_bound: float | None,
 ):
     prepared = _prepare_batch_tensors(
         batch,
@@ -1677,9 +1689,7 @@ def sample_ddpm(
             cond_btd=cond_btd,
             cond_valid_mask_bt=cond_valid_mask_bt,
         )
-        x0_hat = diffusion.predict_x0_from_eps(x, t, eps)
-        if x0_clip_norm is not None:
-            x0_hat = x0_hat.clamp(min=-float(x0_clip_norm), max=float(x0_clip_norm))
+        x0_hat = clip_x0(diffusion.predict_x0_from_eps(x, t, eps), x0_clip_bound)
         x0_hat = apply_seq_mask(x0_hat, target_mask)
         mean = diffusion.posterior_mean_from_x0(x, t, x0_hat)
 
@@ -1857,9 +1867,10 @@ def save_eval_plot_multi_t(
     fixed_noises=None,
     target_mean=None,
     target_std=None,
-    x0_clip_norm: float | None = DEFAULT_SAMPLE_X0_CLIP_NORM,
     use_bpm_training_geometry: bool = False,
     bpm_geometry_num_beats: int = DEFAULT_INFERENCE_NUM_BEATS,
+    *,
+    x0_clip_bound: float | None,
 ):
     os.makedirs(out_dir, exist_ok=True)
     model.eval()
@@ -1924,9 +1935,7 @@ def save_eval_plot_multi_t(
             cond_btd=cond_i,
             cond_valid_mask_bt=cond_mask_i,
         )
-        x0_hat_norm = diffusion.predict_x0_from_eps(x_t, t, pred_eps)
-        if x0_clip_norm is not None:
-            x0_hat_norm = x0_hat_norm.clamp(min=-float(x0_clip_norm), max=float(x0_clip_norm))
+        x0_hat_norm = clip_x0(diffusion.predict_x0_from_eps(x_t, t, pred_eps), x0_clip_bound)
         x0_hat_norm = x0_hat_norm * target_mask_i.unsqueeze(-1)
         x0_hat = denormalize_latent(x0_hat_norm, target_mean, target_std)
         x0_hat = x0_hat * target_mask_i.unsqueeze(-1)
@@ -2103,13 +2112,14 @@ def save_inference_wav(
     sample_idx=0,
     start_noise=None,
     step_noises: Mapping[int, torch.Tensor] | None = None,
-    x0_clip_norm: float | None = DEFAULT_SAMPLE_X0_CLIP_NORM,
     use_bpm_inference_geometry: bool = True,
     inference_num_beats: int = DEFAULT_INFERENCE_NUM_BEATS,
     target_token_rate_hz: float = DEFAULT_TARGET_TOKEN_RATE_HZ,
     beat_crossfade_ms: float = DEFAULT_BEAT_CROSSFADE_MS,
     target_pca_basis: Mapping[str, Any] | None = None,
     target_layout: str | None = None,
+    *,
+    x0_clip_bound: float | None,
 ):
     os.makedirs(out_dir, exist_ok=True)
 
@@ -2121,10 +2131,10 @@ def save_inference_wav(
         sample_idx=sample_idx,
         start_noise=start_noise,
         step_noises=step_noises,
-        x0_clip_norm=x0_clip_norm,
         use_bpm_inference_geometry=bool(use_bpm_inference_geometry),
         inference_num_beats=int(inference_num_beats),
         target_token_rate_hz=float(target_token_rate_hz),
+        x0_clip_bound=x0_clip_bound,
     )
     prepared = _prepare_batch_tensors(
         batch,
@@ -2176,7 +2186,8 @@ def save_inference_wav(
     save_path = os.path.join(out_dir, f"best_epoch_{epoch:03d}.wav")
     torchaudio.save(save_path, wav, sample_rate=write_sample_rate)
 
-    if "source_codes_bct" in batch and "target_btd" in batch:
+    has_rvq_codes = "source_codes_bct" in batch and int(batch["source_codes_bct"].shape[1]) > 0
+    if has_rvq_codes and "target_btd" in batch:
         target_mask_single = geometry["target_valid_mask_bt"]
         cond_i, _ = model.encode_conditioning(
             grid=single["grid"],
@@ -2304,3 +2315,27 @@ def load_or_compute_target_normalization(cache_root: str, train_loader, *, devic
     )
     print(f"saved target stats to {stats_path}")
     return mean.contiguous(), std.contiguous()
+
+
+def x0_clip_bound_from_range(mean, std, target_min, target_max) -> float:
+    """The largest absolute standardized value of the training latents."""
+    mean, std = torch.as_tensor(mean).float().cpu(), torch.as_tensor(std).float().cpu().clamp_min(1.0e-6)
+    low = (torch.as_tensor(target_min).float().cpu() - mean) / std
+    high = (torch.as_tensor(target_max).float().cpu() - mean) / std
+    return float(torch.maximum(low.abs(), high.abs()).max().item())
+
+
+def load_or_compute_x0_clip_bound(cache_root: str, train_loader, *, target_mean, target_std, device: torch.device) -> float:
+    """Each codec's x0 clip bound: the range of its own standardized training latents.
+
+    The per-dimension min/max are measured once from the train split and kept in the
+    cache's target_stats.pt beside the mean and std they are standardized with.
+    """
+    stats_path = os.path.join(cache_root, "target_stats.pt")
+    payload = torch.load(stats_path, map_location="cpu", weights_only=False) if os.path.exists(stats_path) else {}
+    if "target_min" not in payload or "target_max" not in payload:
+        print("measuring the target range from train split")
+        target_min, target_max = estimate_target_range(train_loader, device=device)
+        payload.update({"target_min": target_min.detach().cpu(), "target_max": target_max.detach().cpu()})
+        torch.save(payload, stats_path)
+    return x0_clip_bound_from_range(target_mean, target_std, payload["target_min"], payload["target_max"])
