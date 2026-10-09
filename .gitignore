@@ -79,15 +79,22 @@ sketch_diffusion_out/
 
 /magenta_model
 
-# TRIA baseline: keep the adapter, exclude upstream checkout and generated audio.
-/tria_model/upstream/
-/tria_model/.venv/
-/tria_model/test_set_predictions/
-
 /code/experiment/
 egmd_kit_ablation/
-tria_model/
-caches/
-adtof_model/
+tria_moises_db/
+tria_finetune_gmd/upstream/
+tria_finetune_gmd/.venv_kad/
+# tria_finetune_gmd: machine-specific inputs, weights, renders and evaluation artifacts stay local
+tria_finetune_gmd/.venv/
+tria_finetune_gmd/manifests/
+tria_finetune_gmd/gmd_long.yml
+tria_finetune_gmd/runs/**/*.pt
+tria_finetune_gmd/runs/*/logs/
+tria_finetune_gmd/runs/*/log.txt
+tria_finetune_gmd/predictions/
+tria_finetune_gmd/results/evaluation/
+tria_finetune_gmd/logs/
+
 # Dataset caches (moved from ../pca_diffusion; rebuild with code/experiment/scripts/build_*_cache.py)
 /caches/
+sao_stereo/
