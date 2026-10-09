@@ -1,8 +1,8 @@
-# Grid2Drum-DAC
+# Grid2Groove
 
 Drum-grid–conditioned audio generation via latent diffusion in a PCA subspace of the DAC codec.
 
-**▶ Try it in your browser: [Grid2Drum-DAC listener on Hugging Face](https://huggingface.co/spaces/soilkon/grid2drum-dac-listener)** — generate drum audio from a grid, or compare generated, regressor-baseline, and ground-truth audio for held-out examples.
+**▶ Try it in your browser: [Grid2Groove listener on Hugging Face](https://huggingface.co/spaces/soilkon/grid2drum-dac-listener)** — generate drum audio from a grid, or compare generated, regressor-baseline, and ground-truth audio for held-out examples.
 
 Source: [github.com/kostantinos-soiledis/grid2drum_dac](https://github.com/kostantinos-soiledis/grid2drum_dac)
 
