@@ -1362,7 +1362,7 @@ def launch_private(demo: gr.Blocks, **kwargs: Any) -> Any:
 def build_ui(app: SketchDiffusionListenApp) -> gr.Blocks:
     with gr.Blocks(title="Anonymous Drum Rendering Demo", css=_LISTENER_CSS) as demo:
         gr.Markdown(
-            "## 🥁 Grid2Drum-DAC Listener\n"
+            "## 🥁 Grid2Groove Listener\n"
             "Toggle steps in the **grid** to sketch a one-bar drum pattern, shape the groove with "
             "the main controls on the right, then **Render Grid** to preview what you drew or "
             "**Generate Audio** to hear it. The plot right under the grid shows your pattern and how "

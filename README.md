@@ -1,4 +1,4 @@
-# Grid2Drum-DAC
+# Grid2Groove
 
 Drum-grid–conditioned audio generation via latent diffusion in a PCA subspace of the DAC codec.
 
