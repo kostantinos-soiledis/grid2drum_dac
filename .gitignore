@@ -54,6 +54,21 @@ sketch_diffusion_out/
 # tracked under their original runs/ paths (see runs/weights/manifest.json).
 /runs/final/**/*.pt
 
+# E-GMD kit ablation: keep build reports, run configs/histories and result
+# tables; caches, checkpoints and audio are rebuilt by run_kit_ablation.sh.
+/egmd_kit_ablation/*/cache_dac/
+/egmd_kit_ablation/*/cache_sao/
+/egmd_kit_ablation/*/reference_audio/
+/egmd_kit_ablation/*/reference_audio_validation/
+/egmd_kit_ablation/*/exports/
+/egmd_kit_ablation/*/runs/**/*.pt
+/egmd_kit_ablation/*/runs/**/best_samples/
+/egmd_kit_ablation/*/runs/**/eval_plots/
+/egmd_kit_ablation/*/results/**/eval_input/
+/egmd_kit_ablation/*/results/**/fad_assets/
+/egmd_kit_ablation/*/results/**/wavs/
+/egmd_kit_ablation/*/results/**/per_clip_metrics.jsonl
+
 # Training byproducts
 /runs/**/best_samples/
 /runs/**/eval_plots/
@@ -63,3 +78,23 @@ sketch_diffusion_out/
 /obsolete/
 
 /magenta_model
+
+/code/experiment/
+egmd_kit_ablation/
+tria_moises_db/
+tria_finetune_gmd/upstream/
+tria_finetune_gmd/.venv_kad/
+# tria_finetune_gmd: machine-specific inputs, weights, renders and evaluation artifacts stay local
+tria_finetune_gmd/.venv/
+tria_finetune_gmd/manifests/
+tria_finetune_gmd/gmd_long.yml
+tria_finetune_gmd/runs/**/*.pt
+tria_finetune_gmd/runs/*/logs/
+tria_finetune_gmd/runs/*/log.txt
+tria_finetune_gmd/predictions/
+tria_finetune_gmd/results/evaluation/
+tria_finetune_gmd/logs/
+
+# Dataset caches (moved from ../pca_diffusion; rebuild with code/experiment/scripts/build_*_cache.py)
+/caches/
+sao_stereo/

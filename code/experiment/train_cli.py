@@ -80,13 +80,13 @@ from model import (
     DEFAULT_FRONTEND_RADII,
     DEFAULT_FRONTEND_STEP_SECONDS,
     DEFAULT_FRONTEND_VARIANT,
-    DEFAULT_SAMPLE_X0_CLIP_NORM,
     ConditionalDiffusionTransformer,
     DiffusionTransformerConfig,
     GaussianDiffusion1D,
     build_frontend_cfg_from_batch,
     diffusion_train_step,
     load_or_compute_target_normalization,
+    load_or_compute_x0_clip_bound,
     resolve_encodec_sample_rate,
     resolve_target_token_rate_hz,
     save_eval_plot_multi_t,
@@ -368,7 +368,6 @@ def _parse_args() -> argparse.Namespace:
         default=DEFAULT_EVAL_PLOT_STEPS,
         help="Comma-separated diffusion steps for eval plots, or 'auto' to scale with --num-steps.",
     )
-    parser.add_argument("--x0-clip-norm", type=float, default=DEFAULT_SAMPLE_X0_CLIP_NORM)
     parser.add_argument("--audio-wave-l1-weight", type=float, default=DEFAULT_AUDIO_WAVE_L1_WEIGHT)
     parser.add_argument("--audio-mrstft-weight", type=float, default=DEFAULT_AUDIO_MRSTFT_WEIGHT)
     parser.add_argument(
@@ -393,9 +392,24 @@ def _parse_args() -> argparse.Namespace:
             "val_onset_weighted_x0",
         ),
     )
+    parser.add_argument(
+        "--keep-every",
+        type=int,
+        default=0,
+        help="Also keep weights-only checkpoints/epoch_NNN.pt every this many epochs "
+        "(NNN is the 0-based epoch, as in history), to choose a checkpoint afterwards; 0 keeps none.",
+    )
     parser.add_argument("--x0-mse-weight", type=float, default=0.0)
     parser.add_argument("--quant-embed-mse-weight", type=float, default=0.0)
     parser.add_argument("--rvq-ce-weight", type=float, default=0.0)
+    parser.add_argument(
+        "--x0-clip-bound",
+        type=float,
+        default=None,
+        help="Sampling clamp for the standardized x0 estimate, stored in the checkpoint (training "
+        "reads it unclipped). Default: the largest absolute standardized value of this cache's "
+        "training latents (each codec's own range).",
+    )
     parser.add_argument("--onset-loss-weighting", action="store_true")
     parser.add_argument("--onset-token-radius", type=int, default=1)
     parser.add_argument(
@@ -508,6 +522,8 @@ def main() -> None:
         raise ValueError(f"--grad-accum-steps must be >= 1, got {args.grad_accum_steps}")
     if int(args.bpm_geometry_num_beats) <= 0:
         raise ValueError(f"--bpm-geometry-num-beats must be >= 1, got {args.bpm_geometry_num_beats}")
+    if int(args.keep_every) < 0:
+        raise ValueError(f"--keep-every must be >= 0, got {args.keep_every}")
     frontend_radii = _parse_int_tuple(str(args.frontend_radii))
     audio_mrstft_resolutions = _parse_mrstft_resolutions(str(args.audio_mrstft_resolutions))
     plot_steps = _resolve_eval_plot_steps(str(args.eval_plot_steps), num_steps=int(args.num_steps))
@@ -730,6 +746,21 @@ def main() -> None:
             device=device,
             x_dim=int(cfg.x_dim),
         )
+    if args.x0_clip_bound is not None:
+        x0_clip_bound = float(args.x0_clip_bound)
+    elif init_payload is not None and init_payload.get("x0_clip_bound") is not None:
+        x0_clip_bound = float(init_payload["x0_clip_bound"])
+    else:
+        x0_clip_bound = load_or_compute_x0_clip_bound(
+            args.cache_root,
+            train_loader,
+            target_mean=target_mean,
+            target_std=target_std,
+            device=device,
+        )
+    if not float(x0_clip_bound) > 0.0:
+        raise ValueError(f"x0 clip bound must be positive, got {x0_clip_bound}")
+    print(f"x0 clip bound: +-{float(x0_clip_bound):.4f} (standardized units)")
     sample_rate = int(
         (init_payload or {}).get("sample_rate")
         or resolve_encodec_sample_rate(audio_codec_model)
@@ -801,13 +832,13 @@ def main() -> None:
         "preview_sample_idx": int(preview_sample_idx),
         **training_geometry_payload,
         "eval_plot_steps": [int(x) for x in plot_steps],
-        "x0_clip_norm": float(args.x0_clip_norm),
         "audio_wave_l1_weight": float(args.audio_wave_l1_weight),
         "audio_mrstft_weight": float(args.audio_mrstft_weight),
         "audio_mrstft_resolutions": [[int(n_fft), int(hop)] for n_fft, hop in audio_mrstft_resolutions],
         "x0_mse_weight": float(args.x0_mse_weight),
         "quant_embed_mse_weight": float(args.quant_embed_mse_weight),
         "rvq_ce_weight": float(args.rvq_ce_weight),
+        "x0_clip_bound": float(x0_clip_bound),
         "quant_codebook_embedding_shape": (
             [int(x) for x in quant_codebook_embed_ckd.shape] if quant_codebook_embed_ckd is not None else []
         ),
@@ -817,6 +848,7 @@ def main() -> None:
         "grid_overlay_root": str(Path(args.grid_overlay_root).expanduser().resolve()) if str(args.grid_overlay_root).strip() else "",
         "fixed_sample_epochs": [int(epoch) for epoch in fixed_sample_epochs],
         "checkpoint_metric_name": str(checkpoint_metric_name),
+        "keep_every": int(args.keep_every),
         "sample_rate": int(sample_rate),
         "codec_metadata": dict(codec_metadata),
         "target_layout": str(target_layout),
@@ -878,12 +910,12 @@ def main() -> None:
             sample_idx=int(preview_sample_idx),
             start_noise=fixed_start_noise,
             step_noises=fixed_step_noises,
-            x0_clip_norm=float(args.x0_clip_norm),
             target_pca_basis=target_pca_basis,
             target_layout=target_layout,
             use_bpm_inference_geometry=bool(preview_use_bpm_inference_geometry),
             inference_num_beats=int(args.bpm_geometry_num_beats),
             target_token_rate_hz=float(target_token_rate_hz),
+            x0_clip_bound=x0_clip_bound,
         )
         save_eval_plot_multi_t(
             model=model,
@@ -897,9 +929,9 @@ def main() -> None:
             fixed_noises=fixed_noises,
             target_mean=target_mean,
             target_std=target_std,
-            x0_clip_norm=float(args.x0_clip_norm),
             use_bpm_training_geometry=bool(args.use_bpm_training_geometry),
             bpm_geometry_num_beats=int(args.bpm_geometry_num_beats),
+            x0_clip_bound=x0_clip_bound,
         )
         return Path(wav_path_local)
 
@@ -989,7 +1021,6 @@ def main() -> None:
                 audio_wave_l1_weight=float(args.audio_wave_l1_weight),
                 audio_mrstft_weight=float(args.audio_mrstft_weight),
                 audio_mrstft_resolutions=audio_mrstft_resolutions,
-                x0_clip_norm=float(args.x0_clip_norm) if args.x0_clip_norm is not None else None,
                 x0_mse_weight=float(args.x0_mse_weight),
                 quant_embed_mse_weight=float(args.quant_embed_mse_weight),
                 rvq_ce_weight=float(args.rvq_ce_weight),
@@ -1088,7 +1119,6 @@ def main() -> None:
                     audio_wave_l1_weight=float(args.audio_wave_l1_weight),
                     audio_mrstft_weight=float(args.audio_mrstft_weight),
                     audio_mrstft_resolutions=audio_mrstft_resolutions,
-                    x0_clip_norm=float(args.x0_clip_norm) if args.x0_clip_norm is not None else None,
                     x0_mse_weight=float(args.x0_mse_weight),
                     quant_embed_mse_weight=float(args.quant_embed_mse_weight),
                     rvq_ce_weight=float(args.rvq_ce_weight),
@@ -1210,10 +1240,8 @@ def main() -> None:
         append_jsonl(history_path, epoch_row)
         _write_history_csv(history_csv_path, history_rows)
 
-        _save_diffusion_checkpoint(
-            out_dir / "last.pt",
+        checkpoint_kwargs = dict(
             model=model,
-            optimizer=optimizer,
             cfg=cfg,
             frontend_cfg=frontend_cfg,
             target_mean=target_mean,
@@ -1235,6 +1263,7 @@ def main() -> None:
                 "resume_checkpoint": str(checkpoint_to_load) if bool(resume_requested) else "",
                 "target_layout": str(target_layout),
                 "target_full_dim": int(target_full_dim),
+                "x0_clip_bound": float(x0_clip_bound),
                 "target_pca_basis_path": (
                     str(target_pca_basis_path)
                     if target_pca_basis_path is not None
@@ -1249,47 +1278,15 @@ def main() -> None:
                 },
             },
         )
+        _save_diffusion_checkpoint(out_dir / "last.pt", optimizer=optimizer, **checkpoint_kwargs)
+
+        if int(args.keep_every) > 0 and (int(epoch) + 1) % int(args.keep_every) == 0:
+            kept_path = out_dir / "checkpoints" / f"epoch_{int(epoch):03d}.pt"
+            _save_diffusion_checkpoint(kept_path, optimizer=None, **checkpoint_kwargs)
+            print(f"kept checkpoint: {kept_path}")
 
         if checkpoint_improved:
-            _save_diffusion_checkpoint(
-                out_dir / "best_diffusion.pt",
-                model=model,
-                optimizer=optimizer,
-                cfg=cfg,
-                frontend_cfg=frontend_cfg,
-                target_mean=target_mean,
-                target_std=target_std,
-                sample_rate=sample_rate,
-                codec_metadata=codec_metadata,
-                num_steps=int(args.num_steps),
-                epoch=epoch,
-                best_val_loss=float(best_val_loss),
-                extra_payload={
-                    **epoch_row,
-                    **training_geometry_payload,
-                    "conditioning_ablation": str(conditioning_ablation),
-                    "best_checkpoint_metric_name": str(checkpoint_metric_name),
-                    "best_checkpoint_metric_value": float(best_checkpoint_metric),
-                    "best_checkpoint_epoch": int(best_checkpoint_epoch),
-                    "global_step": int(global_step),
-                    "init_checkpoint": "" if bool(resume_requested) else str((init_payload or {}).get("checkpoint_path") or ""),
-                    "resume_checkpoint": str(checkpoint_to_load) if bool(resume_requested) else "",
-                    "target_layout": str(target_layout),
-                    "target_full_dim": int(target_full_dim),
-                    "target_pca_basis_path": (
-                        str(target_pca_basis_path)
-                        if target_pca_basis_path is not None
-                        else ""
-                    ),
-                    "target_pca_basis": None
-                    if target_pca_basis is None
-                    else {
-                        **target_pca_basis,
-                        "mean": torch.as_tensor(target_pca_basis["mean"], dtype=torch.float32).detach().cpu(),
-                        "components": torch.as_tensor(target_pca_basis["components"], dtype=torch.float32).detach().cpu(),
-                    },
-                },
-            )
+            _save_diffusion_checkpoint(out_dir / "best_diffusion.pt", optimizer=optimizer, **checkpoint_kwargs)
             wav_path = _export_fixed_preview(
                 int(epoch),
                 samples_dir=out_dir / "best_samples",

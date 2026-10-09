@@ -13,13 +13,17 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXP="$ROOT/code/experiment"
 RUNS="$ROOT/runs/final"
+# Sampling clamps the standardized x0 estimate. The published GMD checkpoints predate the
+# stored per-codec bound and were sampled at +-6 (DAC's range: 99.9999% of its standardized
+# training values), so their exports pin it.
+GMD_X0_CLIP_BOUND=6
 PRED="$RUNS/exports"
 RESULTS="$ROOT/results/final"
 
 PYTHON_BIN="${PYTHON_BIN:-python}"
-POSTSNAP_CACHE="${POSTSNAP_CACHE:-$ROOT/../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1}"
-PRESNAP_CACHE="${PRESNAP_CACHE:-$ROOT/../pca_diffusion/cache_4beats_dac44q9_presnap72_bpmgeom_duration_v1}"
-GRID_500_OVERLAY="${GRID_500_OVERLAY:-$ROOT/../pca_diffusion/cache_4beats_dac44q9_pca72_grid500_overlay_v1}"
+POSTSNAP_CACHE="${POSTSNAP_CACHE:-$ROOT/caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1}"
+PRESNAP_CACHE="${PRESNAP_CACHE:-$ROOT/caches/cache_4beats_dac44q9_presnap72_bpmgeom_duration_v1}"
+GRID_500_OVERLAY="${GRID_500_OVERLAY:-$ROOT/caches/cache_4beats_dac44q9_pca72_grid500_overlay_v1}"
 SOURCE_CACHE_ROOT="${SOURCE_CACHE_ROOT:-}"
 DATASET_ROOT="${DATASET_ROOT:-}"
 DEVICE="${DEVICE:-cuda:0}"
@@ -219,7 +223,7 @@ export_diffusion() {
     local export_args=(
       "$PYTHON_BIN" "$EXP/scripts/export_best_diffusion_predictions.py"
       --train-dir "$run_dir" --cache-root "$cache" --split test --out-dir "$out"
-      --num-steps 25 --x0-clip-norm 6 --num-beats 4 --beat-crossfade-ms 10
+      --num-steps 25 --x0-clip-bound "$GMD_X0_CLIP_BOUND" --num-beats 4 --beat-crossfade-ms 10
       --use-bpm-inference-geometry --sample-seed 1234 --max-items "$MAX_ITEMS"
       --batch-size 4 --num-workers 4 --device "$DEVICE" --overwrite
     )
