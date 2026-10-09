@@ -459,6 +459,29 @@ def estimate_target_normalization(
     return mean_d.contiguous(), std_d.contiguous()
 
 
+@torch.no_grad()
+def estimate_target_range(
+    dataloader: DataLoader,
+    *,
+    device: str | torch.device = "cpu",
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Per-dimension minimum and maximum over the valid target frames."""
+    resolved_device = torch.device(device)
+    target_min_d: torch.Tensor | None = None
+    target_max_d: torch.Tensor | None = None
+    for batch in dataloader:
+        target_btd = torch.as_tensor(batch["target_btd"], dtype=torch.float32, device=resolved_device)
+        valid_td = target_btd[torch.as_tensor(batch["target_valid_mask_bt"], dtype=torch.bool, device=resolved_device)]
+        if int(valid_td.shape[0]) == 0:
+            continue
+        batch_min_d, batch_max_d = valid_td.amin(dim=0), valid_td.amax(dim=0)
+        target_min_d = batch_min_d if target_min_d is None else torch.minimum(target_min_d, batch_min_d)
+        target_max_d = batch_max_d if target_max_d is None else torch.maximum(target_max_d, batch_max_d)
+    if target_min_d is None or target_max_d is None:
+        raise RuntimeError("could not measure the target range from an empty dataloader")
+    return target_min_d.contiguous(), target_max_d.contiguous()
+
+
 def build_diffusion_dataloader(
     cache_root: str | Path,
     *,

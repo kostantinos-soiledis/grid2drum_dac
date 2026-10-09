@@ -18,7 +18,7 @@
   "batch_size": 1,
   "bpm_geometry_num_beats": 4,
   "bpm_training_geometry_preserve_cached_frame_counts": true,
-  "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+  "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
   "checkpoint_metric_name": "val_loss",
   "codec_metadata": {
     "codec_audio_channels": 1,
@@ -109,7 +109,7 @@
     "window_radius": 44
   },
   "grad_accum_steps": 4,
-  "grid_overlay_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_grid500_overlay_v1",
+  "grid_overlay_root": "caches/cache_4beats_dac44q9_pca72_grid500_overlay_v1",
   "grid_rate_hz": 500.0,
   "init_checkpoint": "",
   "lr": 0.0001,
@@ -221,7 +221,7 @@
   "seed": 1234,
   "target_full_dim": 1024,
   "target_layout": "framewise_pca",
-  "target_pca_basis_path": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1/pca_basis.pt",
+  "target_pca_basis_path": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1/pca_basis.pt",
   "target_token_rate_hz": 86.1328125,
   "train_batches_per_epoch": 11523,
   "train_split": "train",

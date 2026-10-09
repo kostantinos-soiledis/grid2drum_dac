@@ -45,6 +45,11 @@ against the files present in `../../runs`.
 - `demo_entry.py`: importable launcher used by `app.py`.
 - `listen_ui.py`: interactive UI and inference orchestration.
 - `data/`, `model.py`, `direct_regressor.py`, `sketch_expander.py`: inference support code.
+- `train_sketch_expander_cli.py`: trains the sketch expander on the post-snap cache
+  (`--cache-root ../../caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1`; the shipped
+  checkpoint used 80 epochs, batch 64, d_model 256, 4 layers, 8 heads, lr 2e-4). The current code
+  adds a `snare_roll_run` budget group (9 groups), so a retrain is not byte-identical to the shipped
+  8-group checkpoint, which the app still loads through its stored config.
 - `../../runs/mini_cache`, `../../runs/sketch_expander_dac44_native_v5`,
   `../../runs/runs_dac`, `../../runs/runs_dac_ce`, and
   `../../runs/runs_direct`: model/cache files required by the app.

@@ -1,0 +1,6 @@
+# KAD environment (.venv_kad, kad_eval.py): a venv over the repo's evaluation environment (Python 3.10, torch, fadtk,
+# laion_clap, hypy_utils; sox and ffmpeg next to its interpreter), plus kadtk without its pins (it pins torch<2.6 and
+# numpy<2; its loaders run as is on the evaluation environment's torch 2.9):
+#   <eval python> -m venv --system-site-packages .venv_kad
+#   .venv_kad/bin/pip install --no-deps kadtk==1.1.0
+kadtk==1.1.0

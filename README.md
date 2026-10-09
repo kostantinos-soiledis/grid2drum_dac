@@ -233,7 +233,14 @@ with 25 sampling steps; the regressors are 1024 wide and trained with a Huber
 loss (β = 0.25).
 
 Exports use sampling seed 1234 and one sample per grid, clip the predicted x₀
-to [−6, 6], and apply a 10 ms crossfade at beat boundaries.
+to [−6, 6], and apply a 10 ms crossfade at beat boundaries. The clip is required,
+not cosmetic: the noise schedule ends at ᾱ ≈ 0, where x₀ = (x_t − √(1−ᾱ)·ε̂)/√ᾱ
+multiplies any noise-prediction error by about 500, and unclipped sampling decodes
+to noise (validation mel MAE 56 dB against 9–13 dB clipped). ±6 is DAC's
+standardized range (99.9999% of its training values); `train_cli.py` derives each
+new cache's bound from its own training latents unless `--x0-clip-bound` is given,
+and `run_final_results.sh` pins 6 for the published runs. Training reads the
+unclipped x₀; the published RVQ-CE runs still clipped it in the RVQ-CE term.
 
 ### Reproduce
 

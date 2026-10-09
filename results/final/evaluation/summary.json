@@ -281,10 +281,10 @@
     "style_summary_csv": "style_summary.csv",
     "uses_44k_targets": true
   },
-  "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+  "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
   "compat_cache_dir": "results/final/evaluation/target_audio_cache",
   "compat_cache_summary": {
-    "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+    "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
     "context_ms": 20.0,
     "num_examples": 1733,
     "num_shards": 217,
@@ -302,7 +302,7 @@
       "direct_summary": {
         "audio_l1_mean": 0.05343397640646261,
         "audio_l1_median": 0.041657689958810806,
-        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
         "metric_basis": "export_peak_normalized_audio",
         "mrstft_logmag_l1_mean": 0.10597175075546277,
         "mrstft_logmag_l1_median": 0.09740597009658813,
@@ -322,7 +322,7 @@
       "direct_summary": {
         "audio_l1_mean": 0.05287051085485882,
         "audio_l1_median": 0.041943132877349854,
-        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
         "metric_basis": "export_peak_normalized_audio",
         "mrstft_logmag_l1_mean": 0.10999021132837226,
         "mrstft_logmag_l1_median": 0.10129858553409576,
@@ -342,7 +342,7 @@
       "direct_summary": {
         "audio_l1_mean": 0.04509602668891305,
         "audio_l1_median": 0.03443315252661705,
-        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
         "metric_basis": "export_peak_normalized_audio",
         "mrstft_logmag_l1_mean": 0.13586790491469458,
         "mrstft_logmag_l1_median": 0.12307709455490112,
@@ -362,7 +362,7 @@
       "direct_summary": {
         "audio_l1_mean": 0.0447387479678811,
         "audio_l1_median": 0.0337073989212513,
-        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
         "metric_basis": "export_peak_normalized_audio",
         "mrstft_logmag_l1_mean": 0.1353205029529708,
         "mrstft_logmag_l1_median": 0.12417453527450562,
@@ -382,7 +382,7 @@
       "direct_summary": {
         "audio_l1_mean": 0.05404032961843214,
         "audio_l1_median": 0.04211069270968437,
-        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
         "metric_basis": "export_peak_normalized_audio",
         "mrstft_logmag_l1_mean": 0.10598598486022133,
         "mrstft_logmag_l1_median": 0.09801539033651352,
@@ -402,7 +402,7 @@
       "direct_summary": {
         "audio_l1_mean": 0.05262008924155447,
         "audio_l1_median": 0.041214264929294586,
-        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
         "metric_basis": "export_peak_normalized_audio",
         "mrstft_logmag_l1_mean": 0.1031492392887752,
         "mrstft_logmag_l1_median": 0.09593957662582397,
@@ -422,7 +422,7 @@
       "direct_summary": {
         "audio_l1_mean": 0.05170483851834349,
         "audio_l1_median": 0.0412895642220974,
-        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
         "metric_basis": "export_peak_normalized_audio",
         "mrstft_logmag_l1_mean": 0.10389086307040955,
         "mrstft_logmag_l1_median": 0.09554353356361389,
@@ -442,7 +442,7 @@
       "direct_summary": {
         "audio_l1_mean": 0.049935599557401913,
         "audio_l1_median": 0.039623089134693146,
-        "cache_root": "../pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
+        "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
         "metric_basis": "export_peak_normalized_audio",
         "mrstft_logmag_l1_mean": 0.10461026478603921,
         "mrstft_logmag_l1_median": 0.09574860334396362,

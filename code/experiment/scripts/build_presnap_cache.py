@@ -40,8 +40,8 @@ from build_source_cache import _load_audio_mono
 from data.audio_codec_utils import PRESNAP_TARGET_LAYOUT, load_audio_codec_model
 
 PACKAGE_ROOT = SCRIPT_DIR.parents[2]
-DEFAULT_SRC_CACHE = PACKAGE_ROOT.parent / "pca_diffusion/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1"
-DEFAULT_OUT = PACKAGE_ROOT.parent / "pca_diffusion/cache_4beats_dac44q9_presnap72_bpmgeom_duration_v1"
+DEFAULT_SRC_CACHE = PACKAGE_ROOT / "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1"
+DEFAULT_OUT = PACKAGE_ROOT / "caches/cache_4beats_dac44q9_presnap72_bpmgeom_duration_v1"
 DEFAULT_DATASET_ROOT = Path(
     os.environ.get(
         "GROOVE_DATASET_ROOT",
