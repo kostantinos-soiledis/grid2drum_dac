@@ -1,0 +1,106 @@
+{
+ "embedding": "panns-wavegram-logmel",
+ "bandwidth": 3.8526477813720703,
+ "reference": "tria_finetune_gmd/results/finetune_160k/evaluation/acoustic_eval/fad_assets/reference_audio",
+ "num_clips": 1733,
+ "num_recordings": 71,
+ "reps": 5000,
+ "seed": 1234,
+ "kadtk_scale": 100,
+ "systems": {
+  "grid_250hz": {
+   "kad": 1.337742805480957,
+   "ci95": [
+    1.1110725402832031,
+    1.7587920427322388
+   ],
+   "loudness_match": {
+    "mean_gain_db": -6.204879761348434,
+    "peak_limited": 58,
+    "unmeasured": 1
+   }
+  },
+  "tria_finetuned_bar": {
+   "kad": 1.57928466796875,
+   "ci95": [
+    1.1947435140609741,
+    2.2120676040649414
+   ],
+   "loudness_match": {
+    "mean_gain_db": -9.739504385783645,
+    "peak_limited": 0,
+    "unmeasured": 1
+   }
+  },
+  "tria_finetuned_midi": {
+   "kad": 1.3445615768432617,
+   "ci95": [
+    0.9951317310333252,
+    2.075716495513916
+   ],
+   "loudness_match": {
+    "mean_gain_db": -9.656755197808197,
+    "peak_limited": 0,
+    "unmeasured": 1
+   }
+  },
+  "tria_finetuned160k_bar": {
+   "kad": 1.3449668884277344,
+   "ci95": [
+    1.032036542892456,
+    1.9422045946121216
+   ],
+   "loudness_match": {
+    "mean_gain_db": -9.753191982783152,
+    "peak_limited": 0,
+    "unmeasured": 1
+   }
+  },
+  "tria_finetuned160k_midi": {
+   "kad": 1.205003261566162,
+   "ci95": [
+    0.886462926864624,
+    1.9180701971054077
+   ],
+   "loudness_match": {
+    "mean_gain_db": -9.68077567551041,
+    "peak_limited": 0,
+    "unmeasured": 1
+   }
+  }
+ },
+ "pairs": {
+  "tria_finetuned160k_bar:tria_finetuned_bar": {
+   "diff": -0.23431777954101562,
+   "ci95": [
+    -0.6132128834724426,
+    0.10312701761722565
+   ],
+   "p_permutation": 0.08658268346330734
+  },
+  "tria_finetuned160k_midi:tria_finetuned_midi": {
+   "diff": -0.1395583152770996,
+   "ci95": [
+    -0.5472290515899658,
+    0.20613759756088257
+   ],
+   "p_permutation": 0.27334533093381325
+  },
+  "tria_finetuned160k_bar:grid_250hz": {
+   "diff": 0.007224082946777344,
+   "ci95": [
+    -0.32096564769744873,
+    0.378400057554245
+   ],
+   "p_permutation": 0.9570085982803439
+  },
+  "tria_finetuned160k_midi:grid_250hz": {
+   "diff": -0.13273954391479492,
+   "ci95": [
+    -0.5269816517829895,
+    0.4147210419178009
+   ],
+   "p_permutation": 0.3127374525094981
+  }
+ }
+}

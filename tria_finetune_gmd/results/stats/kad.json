@@ -1,0 +1,138 @@
+{
+ "embedding": "panns-wavegram-logmel",
+ "bandwidth": 3.8526477813720703,
+ "reference": "tria_finetune_gmd/results/evaluation/acoustic_eval/fad_assets/reference_audio",
+ "num_clips": 1733,
+ "num_recordings": 71,
+ "reps": 5000,
+ "seed": 1234,
+ "kadtk_scale": 100,
+ "systems": {
+  "grid_250hz": {
+   "kad": 1.337742805480957,
+   "ci95": [
+    1.1110725402832031,
+    1.7587920427322388
+   ],
+   "loudness_match": {
+    "mean_gain_db": -6.204879761348434,
+    "peak_limited": 58,
+    "unmeasured": 1
+   }
+  },
+  "tria_released_bar": {
+   "kad": 8.497238159179688,
+   "ci95": [
+    7.02298641204834,
+    10.366950988769531
+   ],
+   "loudness_match": {
+    "mean_gain_db": -9.666118384198954,
+    "peak_limited": 0,
+    "unmeasured": 1
+   }
+  },
+  "tria_released_midi": {
+   "kad": 9.369134902954102,
+   "ci95": [
+    7.5449748039245605,
+    11.555506706237793
+   ],
+   "loudness_match": {
+    "mean_gain_db": -9.593002160059045,
+    "peak_limited": 1,
+    "unmeasured": 1
+   }
+  },
+  "tria_finetuned_bar": {
+   "kad": 1.57928466796875,
+   "ci95": [
+    1.1947435140609741,
+    2.2120676040649414
+   ],
+   "loudness_match": {
+    "mean_gain_db": -9.739504385783645,
+    "peak_limited": 0,
+    "unmeasured": 1
+   }
+  },
+  "tria_finetuned_midi": {
+   "kad": 1.3445615768432617,
+   "ci95": [
+    0.9951317310333252,
+    2.075716495513916
+   ],
+   "loudness_match": {
+    "mean_gain_db": -9.656755197808197,
+    "peak_limited": 0,
+    "unmeasured": 1
+   }
+  }
+ },
+ "pairs": {
+  "tria_finetuned_bar:tria_released_bar": {
+   "diff": -6.9179534912109375,
+   "ci95": [
+    -8.315523147583008,
+    -5.691858768463135
+   ],
+   "p_permutation": 0.0001999600079984003
+  },
+  "tria_finetuned_midi:tria_released_midi": {
+   "diff": -8.02457332611084,
+   "ci95": [
+    -9.6273193359375,
+    -6.462536334991455
+   ],
+   "p_permutation": 0.0001999600079984003
+  },
+  "tria_released_midi:tria_released_bar": {
+   "diff": 0.8718967437744141,
+   "ci95": [
+    -0.03267586603760719,
+    1.9358744621276855
+   ],
+   "p_permutation": 0.08338332333533294
+  },
+  "tria_finetuned_midi:tria_finetuned_bar": {
+   "diff": -0.23472309112548828,
+   "ci95": [
+    -0.5272510647773743,
+    0.11935798078775406
+   ],
+   "p_permutation": 0.13617276544691062
+  },
+  "tria_released_bar:grid_250hz": {
+   "diff": 7.1594953536987305,
+   "ci95": [
+    5.61929988861084,
+    8.946853637695312
+   ],
+   "p_permutation": 0.0001999600079984003
+  },
+  "tria_released_midi:grid_250hz": {
+   "diff": 8.031392097473145,
+   "ci95": [
+    6.114086627960205,
+    10.07244873046875
+   ],
+   "p_permutation": 0.0001999600079984003
+  },
+  "tria_finetuned_bar:grid_250hz": {
+   "diff": 0.24154186248779297,
+   "ci95": [
+    -0.29544591903686523,
+    0.8286967873573303
+   ],
+   "p_permutation": 0.09018196360727855
+  },
+  "tria_finetuned_midi:grid_250hz": {
+   "diff": 0.0068187713623046875,
+   "ci95": [
+    -0.5114448070526123,
+    0.6883093118667603
+   ],
+   "p_permutation": 0.9554089182163568
+  }
+ }
+}

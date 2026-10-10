@@ -97,8 +97,10 @@ Metrics:
 
 - **Per-clip** (`code/experiment/evaluate_ablations_4beat_acoustic.py`): log-mel MAE and onset-flux cosine; waveform
   L1 and MR-STFT log-magnitude L1 (`code/experiment/scripts/evaluate_diffusion_predictions.py`'s definitions).
-- **Onset F1** at ±30 and ±50 ms: librosa's onset detector on the clip and on the real bar (same settings), matched
-  with `mir_eval`, as rhythm adherence is scored in TRIA's, DARC's and Break-the-Beat's papers. TRIA plays about 5 ms
+- **Onset F1, precision and recall** at ±30 and ±50 ms: librosa's onset detector on the clip and on the real bar
+  (same settings), matched with `mir_eval`, as rhythm adherence is scored in TRIA's, DARC's and Break-the-Beat's
+  papers. Precision is the share of the clip's onsets that match one of the bar's (extra hits lower it), recall the
+  share of the bar's onsets that the clip reproduces (missed hits lower it). TRIA plays about 5 ms
   late even with the bar itself as its rhythm prompt (its own inference, unchanged), which the onset-flux cosine, with
   its 5.8 ms frames, penalizes heavily (advancing TRIA's clips by 6 ms raises it from 0.68 to 0.79); onset F1 does not
   move with it.
@@ -124,6 +126,26 @@ The evaluation environment also needs `pyloudnorm` (0.1.1).
 
 Results: `results/summary.md`, with `results/overall.csv`, `results/pairs.csv` and `results/stats/`.
 
+## Longer fine-tune (`train_extend.sh`, `evaluate_extend.sh`)
+
+The published run never stopped early: its validation cross-entropy still fell at 80,000 iterations. To test whether
+more fine-tuning changes the comparison, `train_extend.sh` continues that run (its final checkpoint with optimizer,
+learning-rate schedule and validation history, through TRIA's own resume) to 160,000 iterations in
+`runs/gmd_long_160k`, keeping a checkpoint at 120,000; `runs/gmd_long` stays unchanged. `evaluate_extend.sh` renders the
+best checkpoint with both prompt settings and evaluates it as `evaluate.sh` does, next to the 80,000-iteration model
+and our 250 Hz model, with the pairs 160k − 80k and 160k − ours.
+
+```bash
+GMD_ROOT=<groove/> bash tria_finetune_gmd/train_extend.sh cuda:0
+GMD_ROOT=<groove/> SOUNDFONT=<FluidR3_GM.sf2> PYTHON_BIN=<repo evaluation python> bash tria_finetune_gmd/evaluate_extend.sh cuda:0
+```
+
+Result (`results/finetune_160k/summary.md`): the run again never stopped early (validation cross-entropy 0.1482 at
+80,000, 0.1452 at 160,000, by then falling less than 0.001 per 20,000 iterations). FAD∞ falls further (bar prompts
+0.0292 → 0.0270, below our 0.0289; MIDI 0.0325 → 0.0299) and KAD stays indistinguishable from ours, but every
+per-clip measure of following the bar gets slightly worse (log-mel MAE +0.27 / +0.15 dB, onset F1 −0.010 / −0.007,
+p < 0.05), so the gap to our model remains (p = 0.0002 on every per-clip metric).
+
 ## Files
 
 ```
@@ -137,5 +159,7 @@ evaluate.sh           per-clip metrics, FAD, KAD and clustered statistics
 evaluate_metrics.py   real-bar reference, loudness matching, the evaluator's per-clip metrics and FAD
 kad_eval.py           KAD (kadtk) with recording-clustered bootstrap and permutation tests
 summarize.py          tables: results/summary.md, overall.csv, pairs.csv
+train_extend.sh       continue runs/gmd_long to 160,000 iterations (runs/gmd_long_160k)
+evaluate_extend.sh    render and evaluate the 160,000-iteration model (results/finetune_160k/)
 requirements*.txt     TRIA's venv; the KAD venv
 ```

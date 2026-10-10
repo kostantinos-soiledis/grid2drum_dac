@@ -1,0 +1,179 @@
+{
+  "per_clip_csv": "tria_finetune_gmd/results/finetune_160k/evaluation/acoustic_eval/per_clip_metrics.csv",
+  "cluster_col": "source_id",
+  "reps": 5000,
+  "seed": 1234,
+  "available_models": [
+    "grid_250hz",
+    "tria_finetuned160k_bar",
+    "tria_finetuned160k_midi",
+    "tria_finetuned_bar",
+    "tria_finetuned_midi"
+  ],
+  "pairs": {
+    "tria_finetuned160k_bar:tria_finetuned_bar": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 0.27494304467678343,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            0.21163896380720013,
+            0.3391262135475409
+          ],
+          "clustered_ci95": [
+            0.1711117974997254,
+            0.3889456025327445
+          ],
+          "ci_width_inflation": 1.708671302241529,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.017199938449057872,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.020022736311983792,
+            -0.014489442718924812
+          ],
+          "clustered_ci95": [
+            -0.020614151417740218,
+            -0.01362339750830769
+          ],
+          "ci_width_inflation": 1.2633983344389679,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "tria_finetuned160k_midi:tria_finetuned_midi": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 0.1454172849792727,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            0.07789622982044957,
+            0.21273829697599583
+          ],
+          "clustered_ci95": [
+            0.030916154436170965,
+            0.2520941765959262
+          ],
+          "ci_width_inflation": 1.6402746325789908,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.028994201159768047,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.007870355689733436,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.010608100828829061,
+            -0.0050888180953748375
+          ],
+          "clustered_ci95": [
+            -0.011314582121358609,
+            -0.004779851298227544
+          ],
+          "ci_width_inflation": 1.1839818937924433,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "tria_finetuned160k_bar:grid_250hz": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 2.1331689570999806,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            1.9817396441120945,
+            2.2809279221540506
+          ],
+          "clustered_ci95": [
+            1.6942630859097694,
+            2.584829982028708
+          ],
+          "ci_width_inflation": 2.9766102534072267,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.13449471973371152,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.14207578373109706,
+            -0.12696249202441856
+          ],
+          "clustered_ci95": [
+            -0.1667711060426078,
+            -0.10135740628914791
+          ],
+          "ci_width_inflation": 4.3282231973696295,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "tria_finetuned160k_midi:grid_250hz": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 3.8224706523210688,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            3.6658628394131845,
+            3.9894567363570346
+          ],
+          "clustered_ci95": [
+            3.3937495054167877,
+            4.2458361808520895
+          ],
+          "ci_width_inflation": 2.6331976081216255,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.19256680339480578,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.19946628028730157,
+            -0.18582652370475292
+          ],
+          "clustered_ci95": [
+            -0.22041362450387822,
+            -0.16402408791051828
+          ],
+          "ci_width_inflation": 4.134204027182374,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    }
+  }
+}

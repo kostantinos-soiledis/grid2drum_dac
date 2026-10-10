@@ -19,9 +19,13 @@ prompts are cut from (export_audio.bar_audio). Steps, under --out:
                        (CLAP-LAION-Music, 8 repeats) of every system against the real bars
                        (code/experiment/evaluate_ablations_4beat_acoustic.py)
   direct_audio_eval/   waveform L1 and MR-STFT log-magnitude L1 on peak-normalized audio against the real bars
-                       (code/experiment/scripts/evaluate_diffusion_predictions.py's definitions), and onset F1 at
-                       +-30 and +-50 ms (librosa onsets of the clip against the real bar's), per system;
-                       direct_per_clip_metrics.csv over all systems
+                       (code/experiment/scripts/evaluate_diffusion_predictions.py's definitions), and onset precision,
+                       recall and F1 at +-30 and +-50 ms (librosa onsets of the clip against the real bar's): precision
+                       is the share of the clip's onsets that match one of the bar's, recall the share of the bar's
+                       onsets that the clip reproduces; per system, and direct_per_clip_metrics.csv over all systems
+
+--direct-only recomputes direct_audio_eval/ and direct_per_clip_metrics.csv from the real_targets/ and systems/ of a
+previous run, leaving acoustic_eval/ and its FAD as they are.
 
     <eval python> evaluate_metrics.py --system grid_250hz=<exports>/grid_250hz --system tria_released_bar=... \\
         --out results/evaluation --gmd-root $GMD_ROOT --device cuda:0
@@ -141,17 +145,21 @@ def onsets(audio: np.ndarray) -> np.ndarray:
     return librosa.onset.onset_detect(y=np.asarray(audio, dtype=np.float32), sr=SR, hop_length=ONSET_HOP, units="time")
 
 
-def onset_f1(reference: np.ndarray, estimate: np.ndarray) -> dict[str, float]:
-    """Onset F1 of the clip's onsets against the real bar's (mir_eval, one-to-one matching within +-window)."""
-    return {f"onset_f1_{w}ms": float(mir_eval.onset.f_measure(reference, estimate, window=w / 1000)[0])
-            for w in ONSET_WINDOWS_MS}
+def onset_scores(reference: np.ndarray, estimate: np.ndarray) -> dict[str, float]:
+    """Onset F1, precision and recall of the clip's onsets against the real bar's (mir_eval, one-to-one matching
+    within +-window)."""
+    out = {}
+    for w in ONSET_WINDOWS_MS:
+        f, p, r = mir_eval.onset.f_measure(reference, estimate, window=w / 1000)
+        out.update({f"onset_f1_{w}ms": float(f), f"onset_precision_{w}ms": float(p), f"onset_recall_{w}ms": float(r)})
+    return out
 
 
 _REAL_ONSETS: dict[int, np.ndarray] = {}
 
 
 def direct_metrics(name: str, staged: Path, targets: Path, out: Path, device: str) -> list[dict]:
-    """Waveform L1 and MR-STFT log-magnitude L1 of peak-normalized clips, and onset F1, against the real bars."""
+    """Waveform L1 and MR-STFT log-magnitude L1 of peak-normalized clips, and onset scores, against the real bars."""
     cache = {}
     rows_out = []
     for target in read_jsonl(targets / "manifest.jsonl"):
@@ -166,18 +174,22 @@ def direct_metrics(name: str, staged: Path, targets: Path, out: Path, device: st
         index = int(target["dataset_index"])
         if index not in _REAL_ONSETS:
             _REAL_ONSETS[index] = onsets(real[0, 0].cpu().numpy())
+        pred_onsets = onsets(pred[0, 0].cpu().numpy())
         rows_out.append({"model": name, "dataset_index": int(target["dataset_index"]), "source_id": target["source_id"],
                          "beat_index": target["beat_index"], "target_num_samples": n, "pred_wav": row["wav"],
                          "audio_l1": float((pred - real).abs().mean()),
                          "mrstft_logmag_l1": float(mrstft_logmag_l1_per_example(pred, real, torch.tensor([n], device=device))[0]),
-                         "real_onsets": len(_REAL_ONSETS[index]),
-                         **onset_f1(_REAL_ONSETS[index], onsets(pred[0, 0].cpu().numpy()))})
+                         "real_onsets": len(_REAL_ONSETS[index]), "pred_onsets": len(pred_onsets),
+                         **onset_scores(_REAL_ONSETS[index], pred_onsets)})
     (out / name).mkdir(parents=True, exist_ok=True)
     write_csv(out / name / "per_clip_metrics.csv", rows_out)
     summary = {"reference": "real GMD bars", "num_examples": len(rows_out), "predictions_dir": str(staged),
                "audio_l1_mean": float(np.mean([r["audio_l1"] for r in rows_out])),
                "mrstft_logmag_l1_mean": float(np.mean([r["mrstft_logmag_l1"] for r in rows_out])),
-               **{f"onset_f1_{w}ms_mean": float(np.mean([r[f"onset_f1_{w}ms"] for r in rows_out])) for w in ONSET_WINDOWS_MS},
+               **{f"{k}_mean": float(np.mean([r[k] for r in rows_out])) for w in ONSET_WINDOWS_MS
+                  for k in (f"onset_f1_{w}ms", f"onset_precision_{w}ms", f"onset_recall_{w}ms")},
+               "onsets_per_clip_mean": float(np.mean([r["pred_onsets"] for r in rows_out])),
+               "real_onsets_per_clip_mean": float(np.mean([r["real_onsets"] for r in rows_out])),
                "onset_detector": f"librosa {librosa.__version__} onset_detect, hop {ONSET_HOP}; mir_eval "
                                  f"{mir_eval.__version__} onset.f_measure",
                "metric_basis": "peak_normalized_audio_vs_real_bars"}
@@ -213,24 +225,27 @@ def main() -> None:
     ap.add_argument("--fad-repeats", type=int, default=8)
     ap.add_argument("--max-items", type=int, default=0)
     ap.add_argument("--device", default="cuda:0")
+    ap.add_argument("--direct-only", action="store_true", help="recompute only the direct metrics of a previous run")
     args = ap.parse_args()
     systems = dict(s.split("=", 1) for s in args.system)
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
 
-    loudness = real_targets(args.cache_root, args.gmd_root, args.split, out / "real_targets", args.max_items)
-    print(f"real bars: {len(loudness)}, median {np.median([v for v in loudness.values() if math.isfinite(v)]):.1f} LUFS",
-          flush=True)
-    staged = {}
-    for name, d in systems.items():
-        staged[name] = out / "systems" / name
-        print(name, "loudness match", stage(Path(d).resolve(), loudness, staged[name]), flush=True)
+    staged = {name: out / "systems" / name for name in systems}
+    if not args.direct_only:
+        loudness = real_targets(args.cache_root, args.gmd_root, args.split, out / "real_targets", args.max_items)
+        print(f"real bars: {len(loudness)}, median "
+              f"{np.median([v for v in loudness.values() if math.isfinite(v)]):.1f} LUFS", flush=True)
+        for name, d in systems.items():
+            print(name, "loudness match", stage(Path(d).resolve(), loudness, staged[name]), flush=True)
 
     # before the acoustic evaluator: loading it sets NUMBA_DISABLE_JIT, under which librosa's onset module fails to import
     direct = []
     for name, d in staged.items():
         direct += direct_metrics(name, d, out / "real_targets", out / "direct_audio_eval", args.device)
     write_csv(out / "direct_per_clip_metrics.csv", direct)
+    if args.direct_only:
+        return
 
     for name, d in staged.items():
         rde._prepare_prediction_eval_input_root(eval_input_root=out / "eval_input", model_name=name, predictions_dir=d,

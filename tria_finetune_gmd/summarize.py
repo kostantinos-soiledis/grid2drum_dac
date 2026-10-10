@@ -16,11 +16,15 @@ LABELS = {
     "tria_released_midi": "TRIA released, MIDI render + reference",
     "tria_finetuned_bar": "TRIA fine-tuned, bar as prompts",
     "tria_finetuned_midi": "TRIA fine-tuned, MIDI render + reference",
+    "tria_finetuned160k_bar": "TRIA fine-tuned 160k, bar as prompts",  # evaluate_extend.sh
+    "tria_finetuned160k_midi": "TRIA fine-tuned 160k, MIDI render + reference",
 }
 # the paper's results columns (results/final/summary.md) with onset F1 next to onset cosine, then KAD
 METRICS = [("mel_mae_db", "Mel MAE ↓"), ("onset_flux_cosine", "Onset cosine ↑"), ("onset_f1_30ms_mean", "Onset F1 ±30 ms ↑"),
            ("onset_f1_50ms_mean", "Onset F1 ±50 ms ↑"), ("fad_inf", "FAD∞ ↓"), ("audio_l1_mean", "Audio L1 ↓"),
            ("mrstft_logmag_l1_mean", "MR-STFT ↓")]
+# onset precision (share of the clip's onsets matching the bar's) and recall (share of the bar's onsets reproduced)
+ONSETS = [(f"onset_{k}_{w}ms_mean", f"{k.capitalize()} ±{w} ms") for w in (30, 50) for k in ("precision", "recall", "f1")]
 KAD_LABEL = "KAD ↓"
 TRIA_PARAMETERS = 43_051_008  # TRIA's trainable parameters (its training log; the DAC tokenizer is frozen, as ours)
 
@@ -66,8 +70,8 @@ def main() -> None:
         row = {"model": name, "label": LABELS.get(name, name), **{k: overall[name].get(k, "") for k in
                ("num_examples", "mel_mae_db", "onset_flux_cosine", "fad_inf", "fad_inf_sd")}}
         summary = json.loads((ev / "direct_audio_eval" / name / "summary.json").read_text())
-        row.update({k: summary[k] for k in ("audio_l1_mean", "mrstft_logmag_l1_mean", "onset_f1_30ms_mean",
-                                            "onset_f1_50ms_mean")})
+        row.update({k: summary[k] for k in ("audio_l1_mean", "mrstft_logmag_l1_mean", *(c for c, _ in ONSETS),
+                                            "onsets_per_clip_mean", "real_onsets_per_clip_mean")})
         staged = json.loads((ev / "systems" / name / "summary.json").read_text())
         row["num_parameters"] = TRIA_PARAMETERS if name.startswith("tria_") else staged.get("num_parameters", "")
         row["loudness_gain_db"] = staged["loudness_match"]["mean_gain_db"]
@@ -76,9 +80,9 @@ def main() -> None:
         rows.append(row)
     kad_cols = ["kad", "kad_ci_low", "kad_ci_high"]
     write_csv(out / "overall.csv", rows, ["model", "label", "num_examples", "num_parameters", "mel_mae_db",
-                                          "onset_flux_cosine", "onset_f1_30ms_mean", "onset_f1_50ms_mean", "fad_inf",
-                                          "fad_inf_sd", "audio_l1_mean", "mrstft_logmag_l1_mean", *kad_cols,
-                                          "loudness_gain_db"])
+                                          "onset_flux_cosine", *(c for c, _ in ONSETS), "onsets_per_clip_mean",
+                                          "real_onsets_per_clip_mean", "fad_inf", "fad_inf_sd", "audio_l1_mean",
+                                          "mrstft_logmag_l1_mean", *kad_cols, "loudness_gain_db"])
 
     stats = {}
     for f in ("acoustic", "direct_audio"):
@@ -113,6 +117,15 @@ def main() -> None:
         cells.append(f"{int(r['num_parameters']) / 1e6:.2f}M" if r["num_parameters"] != "" else "")
         cells.append(f"{fmt(r['kad'])} [{fmt(r['kad_ci_low'])}, {fmt(r['kad_ci_high'])}]")
         lines.append(f"| {r['label']} | " + " | ".join(cells) + " |")
+    lines += ["", "## Onsets", "",
+              "Precision: the share of the clip's onsets that match one of the real bar's; recall: the share of the "
+              "real bar's onsets that the clip reproduces (one-to-one matching within the window). Onsets per clip: "
+              f"the real bars average {fmt(rows[0]['real_onsets_per_clip_mean'], 3)}.", "",
+              "| System | " + " | ".join(l for _, l in ONSETS) + " | Onsets per clip |",
+              "| --- |" + " ---: |" * (len(ONSETS) + 1)]
+    for r in rows:
+        lines.append(f"| {r['label']} | " + " | ".join(fmt(r[c], 3) for c, _ in ONSETS)
+                     + f" | {fmt(r['onsets_per_clip_mean'], 3)} |")
     lines += ["", "## Paired comparisons (A − B)", "",
               f"Recording-clustered: 95% CI from a bootstrap over the {kad['num_recordings']} recordings; p from a "
               "recording-level sign-flip test (per-clip metrics) or a recording-level swap of the two systems' clips "
