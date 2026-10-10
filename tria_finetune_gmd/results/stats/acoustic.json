@@ -1,0 +1,343 @@
+{
+  "per_clip_csv": "tria_finetune_gmd/results/evaluation/acoustic_eval/per_clip_metrics.csv",
+  "cluster_col": "source_id",
+  "reps": 5000,
+  "seed": 1234,
+  "available_models": [
+    "grid_250hz",
+    "tria_finetuned_bar",
+    "tria_finetuned_midi",
+    "tria_released_bar",
+    "tria_released_midi"
+  ],
+  "pairs": {
+    "tria_finetuned_bar:tria_released_bar": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": -1.0143426602380645,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -1.1191113200204192,
+            -0.9103212561417507
+          ],
+          "clustered_ci95": [
+            -1.2588659788994612,
+            -0.8228786860220028
+          ],
+          "ci_width_inflation": 2.0881611163777323,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": 0.04895703678967762,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            0.044525744180483245,
+            0.053274656849059535
+          ],
+          "clustered_ci95": [
+            0.03927503080723995,
+            0.05955061090995009
+          ],
+          "ci_width_inflation": 2.317497141734481,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "tria_finetuned_midi:tria_released_midi": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": -1.1483068466186523,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -1.254829703722809,
+            -1.0423474072034278
+          ],
+          "clustered_ci95": [
+            -1.329142024575129,
+            -0.9827891688211097
+          ],
+          "ci_width_inflation": 1.6300315905256004,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": 0.04459324718574645,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            0.04049745255767778,
+            0.04861012323772064
+          ],
+          "clustered_ci95": [
+            0.03556271595047174,
+            0.053725322021840355
+          ],
+          "ci_width_inflation": 2.2387949403700764,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "tria_released_midi:tria_released_bar": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 1.9527916412991866,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            1.7916850878679196,
+            2.110518302390566
+          ],
+          "clustered_ci95": [
+            1.6824198401942132,
+            2.234674500113227
+          ],
+          "ci_width_inflation": 1.732111444994348,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.06303787681648751,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.06949958119847913,
+            -0.056468521889853684
+          ],
+          "clustered_ci95": [
+            -0.08243064587154281,
+            -0.04651431453458217
+          ],
+          "ci_width_inflation": 2.7562096439225865,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "tria_finetuned_midi:tria_finetuned_bar": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 1.818827454918599,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            1.694002893929941,
+            1.9547065617717625
+          ],
+          "clustered_ci95": [
+            1.5748647082493172,
+            2.069584003291246
+          ],
+          "ci_width_inflation": 1.897630743507962,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.0674016664204187,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.0737335550046158,
+            -0.061121089805186817
+          ],
+          "clustered_ci95": [
+            -0.08811564685628609,
+            -0.049822481765965806
+          ],
+          "ci_width_inflation": 3.0361364320794295,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "tria_released_bar:grid_250hz": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 2.8725685726612618,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            2.7028940909285804,
+            3.0447857339706847
+          ],
+          "clustered_ci95": [
+            2.388263090728715,
+            3.3335946203708584
+          ],
+          "ci_width_inflation": 2.7650033245349745,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.16625181807433126,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.17438729081838364,
+            -0.15796455686336688
+          ],
+          "clustered_ci95": [
+            -0.20607309824100997,
+            -0.1275236926900186
+          ],
+          "ci_width_inflation": 4.7829676694601995,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "tria_released_midi:grid_250hz": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 4.825360213960448,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            4.659076411278345,
+            4.996867620429068
+          ],
+          "clustered_ci95": [
+            4.374677164345713,
+            5.302479869418612
+          ],
+          "ci_width_inflation": 2.7466751056239365,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.22928969489081877,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.2365505451436643,
+            -0.22171277370591416
+          ],
+          "clustered_ci95": [
+            -0.261650929523394,
+            -0.19584044136482237
+          ],
+          "ci_width_inflation": 4.435335079440375,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "tria_finetuned_bar:grid_250hz": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 1.8582259124231972,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            1.7084056649879438,
+            2.000853049548733
+          ],
+          "clustered_ci95": [
+            1.4206806079798455,
+            2.2947526033358394
+          ],
+          "ci_width_inflation": 2.988817960087813,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.11729478128465363,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.12482364884652913,
+            -0.10986655052697014
+          ],
+          "clustered_ci95": [
+            -0.1495597572379252,
+            -0.08363115520778984
+          ],
+          "ci_width_inflation": 4.407847071776102,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "tria_finetuned_midi:grid_250hz": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 3.677053367341796,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            3.5160180986409095,
+            3.8369824684945684
+          ],
+          "clustered_ci95": [
+            3.255622534758414,
+            4.10385884322528
+          ],
+          "ci_width_inflation": 2.6427740526265033,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.18469644770507235,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.19148584963628396,
+            -0.17782834221371233
+          ],
+          "clustered_ci95": [
+            -0.21115019889770187,
+            -0.1576726177676504
+          ],
+          "ci_width_inflation": 3.915617943701029,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    }
+  }
+}

@@ -3,7 +3,8 @@
 # 250 Hz model's test exports alongside, every metric against the real GMD bars:
 #   1. evaluate_metrics.py: the real bars as reference; every system's clips gain-matched to their real bar's loudness;
 #      the evaluator's per-clip acoustic metrics (log-mel MAE, onset-flux cosine, ...) and FAD-inf (CLAP-LAION-Music,
-#      8 repeats); waveform L1 and MR-STFT on peak-normalized audio; onset F1 at +-30 and +-50 ms
+#      8 repeats); waveform L1 and MR-STFT on peak-normalized audio; onset precision, recall and F1 at +-30 and
+#      +-50 ms
 #   2. code/experiment/scripts/clustered_paired_stats.py: paired tests clustered by recording (bootstrap CIs and
 #      sign-flip p-values, 5000 resamples)
 #   3. kad_eval.py: KAD through kadtk with PANNs-WGLM against the real bars (one kernel for all systems), with
@@ -48,7 +49,8 @@ log "clustered paired statistics"
 "$PY" "$ROOT/code/experiment/scripts/clustered_paired_stats.py" --per-clip "$EVAL/acoustic_eval/per_clip_metrics.csv" \
   --out "$RESULTS/stats/acoustic.json" --pairs "${pairs[@]}" --metrics mel_mae_db onset_flux_cosine --reps 5000 --seed 1234
 "$PY" "$ROOT/code/experiment/scripts/clustered_paired_stats.py" --per-clip "$EVAL/direct_per_clip_metrics.csv" \
-  --out "$RESULTS/stats/direct_audio.json" --pairs "${pairs[@]}" --metrics audio_l1 mrstft_logmag_l1 onset_f1_30ms onset_f1_50ms --reps 5000 \
+  --out "$RESULTS/stats/direct_audio.json" --pairs "${pairs[@]}" --metrics audio_l1 mrstft_logmag_l1 onset_f1_30ms onset_f1_50ms \
+  onset_precision_30ms onset_recall_30ms onset_precision_50ms onset_recall_50ms --reps 5000 \
   --seed 1234
 
 log "KAD"
