@@ -7,7 +7,7 @@
 <style>
 :root {
   --bg: #f3f4f1; --panel: #ffffff; --fg: #1d211f; --muted: #5d6661; --line: #d9ddd8;
-  --ours: #2f6f5e; --target: #3d4a8f; --prompt: #8a6a1f; --tria-r: #b7a2ab; --tria: #8c3f5c;
+  --ours: #2f6f5e; --target: #3d4a8f; --prompt: #8a6a1f; --tria-r: #b7a2ab; --tria: #a0526f; --tria160: #6b2342;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   color-scheme: light;
@@ -25,7 +25,7 @@ h2 { margin: 0; font-size: 17px; line-height: 1.3; }
 .meta { font: 13px var(--mono); color: var(--muted); margin-left: auto; }
 .top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
 .pair { display: grid; gap: 12px; }
-.tria { display: grid; grid-template-columns: 52px minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px; align-items: start; }
+.tria { display: grid; grid-template-columns: 52px minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 10px 12px; align-items: start; }
 .t-head { font-weight: 700; font-size: 14px; color: var(--tria); }
 .t-col { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); align-self: end; }
 .t-row { font-size: 13px; font-weight: 600; color: var(--muted); padding-top: 10px; }
@@ -51,13 +51,14 @@ h2 { margin: 0; font-size: 17px; line-height: 1.3; }
 .cell.prompt, .cell.rhythm, .cell.timbre { border-top-color: var(--prompt); }
 .cell.tria_bar, .cell.tria_midi { border-top-color: var(--tria-r); }
 .cell.tria_ft_bar, .cell.tria_ft_midi { border-top-color: var(--tria); }
+.cell.tria_ft160_bar, .cell.tria_ft160_midi { border-top-color: var(--tria160); border-top-width: 4px; }
 .lab { font-weight: 600; font-size: 14px; display: flex; flex-wrap: wrap; gap: 0 6px; align-items: baseline; }
 .lab em { font-style: normal; font-weight: 400; color: var(--muted); font-size: 13px; }
 audio { width: 100%; height: 36px; }
 audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
 @media (max-width: 900px) {
   .top { grid-template-columns: 1fr; }
-  .tria { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .tria { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .t-col { display: none; }
   .t-head, .t-row, .prompt, .prompts { grid-column: 1 / -1; }
   .t-row { padding-top: 4px; }
@@ -73,7 +74,7 @@ audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
 <main class="wrap">
   <section class="intro">
     <h1>Grid2Groove listening examples</h1>
-    <p>Twelve bars from twelve GMD test performances. Each shows the expressive drum grid (EDG) our model is conditioned on, the recording, our model's output, and TRIA's prompts next to its outputs, from the released checkpoint and after fine-tuning on GMD.</p>
+    <p>Twelve bars from twelve GMD test performances. Each shows the expressive drum grid (EDG) our model is conditioned on, the recording, our model's output, and TRIA's prompts next to its outputs: released, fine-tuned on GMD for 80,000 iterations, and the same fine-tune continued to 160,000.</p>
     <p>EDG plot: for each instrument, the state velocity at every frame (shaded) and the onsets (stems as high as their velocity, coloured and shaped by articulation id; hover for details). Outputs are gain-matched to the recording's loudness; prompts play as TRIA received them. One sample per bar, as evaluated.</p>
   </section>
   <div class="list">
@@ -85,13 +86,13 @@ audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
     <div class="pair"><div class="cell target"><span class="lab">Recording<em>the GMD bar</em></span><audio controls preload="none" src="audio/01_target.wav"></audio></div><div class="cell ours"><span class="lab">Our model<em>from the EDG alone</em></span><audio controls preload="none" src="audio/01_ours.wav"></audio></div></div>
   </div>
   <div class="tria">
-    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned on GMD</span>
+    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned 80k</span><span class="t-col">Fine-tuned 160k</span>
     <span class="t-row">Bar</span>
     <div class="cell prompt"><span class="lab">The recording above<em>rhythm and timbre prompt</em></span></div>
-    <div class="cell tria_bar"><span class="lab">Released<em>bar prompts</em></span><audio controls preload="none" src="audio/01_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">Fine-tuned<em>bar prompts</em></span><audio controls preload="none" src="audio/01_tria_ft_bar.wav"></audio></div>
+    <div class="cell tria_bar"><span class="lab">Released<em>bar</em></span><audio controls preload="none" src="audio/01_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">80k<em>bar</em></span><audio controls preload="none" src="audio/01_tria_ft_bar.wav"></audio></div><div class="cell tria_ft160_bar"><span class="lab">160k<em>bar</em></span><audio controls preload="none" src="audio/01_tria_ft160_bar.wav"></audio></div>
     <span class="t-row">MIDI</span>
     <div class="prompts"><div class="cell rhythm"><span class="lab">Rhythm<em>MIDI render of the EDG onsets</em></span><audio controls preload="none" src="audio/01_rhythm.wav"></audio></div><div class="cell timbre"><span class="lab">Timbre<em>2 s of the recording before the bar</em></span><audio controls preload="none" src="audio/01_timbre.wav"></audio></div></div>
-    <div class="cell tria_midi"><span class="lab">Released<em>MIDI prompts</em></span><audio controls preload="none" src="audio/01_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">Fine-tuned<em>MIDI prompts</em></span><audio controls preload="none" src="audio/01_tria_ft_midi.wav"></audio></div>
+    <div class="cell tria_midi"><span class="lab">Released<em>MIDI</em></span><audio controls preload="none" src="audio/01_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">80k<em>MIDI</em></span><audio controls preload="none" src="audio/01_tria_ft_midi.wav"></audio></div><div class="cell tria_ft160_midi"><span class="lab">160k<em>MIDI</em></span><audio controls preload="none" src="audio/01_tria_ft160_midi.wav"></audio></div>
   </div>
 </article>
 <article class="bar">
@@ -102,13 +103,13 @@ audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
     <div class="pair"><div class="cell target"><span class="lab">Recording<em>the GMD bar</em></span><audio controls preload="none" src="audio/02_target.wav"></audio></div><div class="cell ours"><span class="lab">Our model<em>from the EDG alone</em></span><audio controls preload="none" src="audio/02_ours.wav"></audio></div></div>
   </div>
   <div class="tria">
-    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned on GMD</span>
+    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned 80k</span><span class="t-col">Fine-tuned 160k</span>
     <span class="t-row">Bar</span>
     <div class="cell prompt"><span class="lab">The recording above<em>rhythm and timbre prompt</em></span></div>
-    <div class="cell tria_bar"><span class="lab">Released<em>bar prompts</em></span><audio controls preload="none" src="audio/02_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">Fine-tuned<em>bar prompts</em></span><audio controls preload="none" src="audio/02_tria_ft_bar.wav"></audio></div>
+    <div class="cell tria_bar"><span class="lab">Released<em>bar</em></span><audio controls preload="none" src="audio/02_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">80k<em>bar</em></span><audio controls preload="none" src="audio/02_tria_ft_bar.wav"></audio></div><div class="cell tria_ft160_bar"><span class="lab">160k<em>bar</em></span><audio controls preload="none" src="audio/02_tria_ft160_bar.wav"></audio></div>
     <span class="t-row">MIDI</span>
     <div class="prompts"><div class="cell rhythm"><span class="lab">Rhythm<em>MIDI render of the EDG onsets</em></span><audio controls preload="none" src="audio/02_rhythm.wav"></audio></div><div class="cell timbre"><span class="lab">Timbre<em>2 s of the recording before the bar</em></span><audio controls preload="none" src="audio/02_timbre.wav"></audio></div></div>
-    <div class="cell tria_midi"><span class="lab">Released<em>MIDI prompts</em></span><audio controls preload="none" src="audio/02_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">Fine-tuned<em>MIDI prompts</em></span><audio controls preload="none" src="audio/02_tria_ft_midi.wav"></audio></div>
+    <div class="cell tria_midi"><span class="lab">Released<em>MIDI</em></span><audio controls preload="none" src="audio/02_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">80k<em>MIDI</em></span><audio controls preload="none" src="audio/02_tria_ft_midi.wav"></audio></div><div class="cell tria_ft160_midi"><span class="lab">160k<em>MIDI</em></span><audio controls preload="none" src="audio/02_tria_ft160_midi.wav"></audio></div>
   </div>
 </article>
 <article class="bar">
@@ -119,13 +120,13 @@ audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
     <div class="pair"><div class="cell target"><span class="lab">Recording<em>the GMD bar</em></span><audio controls preload="none" src="audio/03_target.wav"></audio></div><div class="cell ours"><span class="lab">Our model<em>from the EDG alone</em></span><audio controls preload="none" src="audio/03_ours.wav"></audio></div></div>
   </div>
   <div class="tria">
-    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned on GMD</span>
+    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned 80k</span><span class="t-col">Fine-tuned 160k</span>
     <span class="t-row">Bar</span>
     <div class="cell prompt"><span class="lab">The recording above<em>rhythm and timbre prompt</em></span></div>
-    <div class="cell tria_bar"><span class="lab">Released<em>bar prompts</em></span><audio controls preload="none" src="audio/03_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">Fine-tuned<em>bar prompts</em></span><audio controls preload="none" src="audio/03_tria_ft_bar.wav"></audio></div>
+    <div class="cell tria_bar"><span class="lab">Released<em>bar</em></span><audio controls preload="none" src="audio/03_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">80k<em>bar</em></span><audio controls preload="none" src="audio/03_tria_ft_bar.wav"></audio></div><div class="cell tria_ft160_bar"><span class="lab">160k<em>bar</em></span><audio controls preload="none" src="audio/03_tria_ft160_bar.wav"></audio></div>
     <span class="t-row">MIDI</span>
     <div class="prompts"><div class="cell rhythm"><span class="lab">Rhythm<em>MIDI render of the EDG onsets</em></span><audio controls preload="none" src="audio/03_rhythm.wav"></audio></div><div class="cell timbre"><span class="lab">Timbre<em>2 s of the recording before the bar</em></span><audio controls preload="none" src="audio/03_timbre.wav"></audio></div></div>
-    <div class="cell tria_midi"><span class="lab">Released<em>MIDI prompts</em></span><audio controls preload="none" src="audio/03_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">Fine-tuned<em>MIDI prompts</em></span><audio controls preload="none" src="audio/03_tria_ft_midi.wav"></audio></div>
+    <div class="cell tria_midi"><span class="lab">Released<em>MIDI</em></span><audio controls preload="none" src="audio/03_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">80k<em>MIDI</em></span><audio controls preload="none" src="audio/03_tria_ft_midi.wav"></audio></div><div class="cell tria_ft160_midi"><span class="lab">160k<em>MIDI</em></span><audio controls preload="none" src="audio/03_tria_ft160_midi.wav"></audio></div>
   </div>
 </article>
 <article class="bar">
@@ -136,13 +137,13 @@ audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
     <div class="pair"><div class="cell target"><span class="lab">Recording<em>the GMD bar</em></span><audio controls preload="none" src="audio/04_target.wav"></audio></div><div class="cell ours"><span class="lab">Our model<em>from the EDG alone</em></span><audio controls preload="none" src="audio/04_ours.wav"></audio></div></div>
   </div>
   <div class="tria">
-    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned on GMD</span>
+    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned 80k</span><span class="t-col">Fine-tuned 160k</span>
     <span class="t-row">Bar</span>
     <div class="cell prompt"><span class="lab">The recording above<em>rhythm and timbre prompt</em></span></div>
-    <div class="cell tria_bar"><span class="lab">Released<em>bar prompts</em></span><audio controls preload="none" src="audio/04_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">Fine-tuned<em>bar prompts</em></span><audio controls preload="none" src="audio/04_tria_ft_bar.wav"></audio></div>
+    <div class="cell tria_bar"><span class="lab">Released<em>bar</em></span><audio controls preload="none" src="audio/04_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">80k<em>bar</em></span><audio controls preload="none" src="audio/04_tria_ft_bar.wav"></audio></div><div class="cell tria_ft160_bar"><span class="lab">160k<em>bar</em></span><audio controls preload="none" src="audio/04_tria_ft160_bar.wav"></audio></div>
     <span class="t-row">MIDI</span>
     <div class="prompts"><div class="cell rhythm"><span class="lab">Rhythm<em>MIDI render of the EDG onsets</em></span><audio controls preload="none" src="audio/04_rhythm.wav"></audio></div><div class="cell timbre"><span class="lab">Timbre<em>2 s of the recording before the bar</em></span><audio controls preload="none" src="audio/04_timbre.wav"></audio></div></div>
-    <div class="cell tria_midi"><span class="lab">Released<em>MIDI prompts</em></span><audio controls preload="none" src="audio/04_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">Fine-tuned<em>MIDI prompts</em></span><audio controls preload="none" src="audio/04_tria_ft_midi.wav"></audio></div>
+    <div class="cell tria_midi"><span class="lab">Released<em>MIDI</em></span><audio controls preload="none" src="audio/04_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">80k<em>MIDI</em></span><audio controls preload="none" src="audio/04_tria_ft_midi.wav"></audio></div><div class="cell tria_ft160_midi"><span class="lab">160k<em>MIDI</em></span><audio controls preload="none" src="audio/04_tria_ft160_midi.wav"></audio></div>
   </div>
 </article>
 <article class="bar">
@@ -153,13 +154,13 @@ audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
     <div class="pair"><div class="cell target"><span class="lab">Recording<em>the GMD bar</em></span><audio controls preload="none" src="audio/05_target.wav"></audio></div><div class="cell ours"><span class="lab">Our model<em>from the EDG alone</em></span><audio controls preload="none" src="audio/05_ours.wav"></audio></div></div>
   </div>
   <div class="tria">
-    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned on GMD</span>
+    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned 80k</span><span class="t-col">Fine-tuned 160k</span>
     <span class="t-row">Bar</span>
     <div class="cell prompt"><span class="lab">The recording above<em>rhythm and timbre prompt</em></span></div>
-    <div class="cell tria_bar"><span class="lab">Released<em>bar prompts</em></span><audio controls preload="none" src="audio/05_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">Fine-tuned<em>bar prompts</em></span><audio controls preload="none" src="audio/05_tria_ft_bar.wav"></audio></div>
+    <div class="cell tria_bar"><span class="lab">Released<em>bar</em></span><audio controls preload="none" src="audio/05_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">80k<em>bar</em></span><audio controls preload="none" src="audio/05_tria_ft_bar.wav"></audio></div><div class="cell tria_ft160_bar"><span class="lab">160k<em>bar</em></span><audio controls preload="none" src="audio/05_tria_ft160_bar.wav"></audio></div>
     <span class="t-row">MIDI</span>
     <div class="prompts"><div class="cell rhythm"><span class="lab">Rhythm<em>MIDI render of the EDG onsets</em></span><audio controls preload="none" src="audio/05_rhythm.wav"></audio></div><div class="cell timbre"><span class="lab">Timbre<em>2 s of the recording before the bar</em></span><audio controls preload="none" src="audio/05_timbre.wav"></audio></div></div>
-    <div class="cell tria_midi"><span class="lab">Released<em>MIDI prompts</em></span><audio controls preload="none" src="audio/05_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">Fine-tuned<em>MIDI prompts</em></span><audio controls preload="none" src="audio/05_tria_ft_midi.wav"></audio></div>
+    <div class="cell tria_midi"><span class="lab">Released<em>MIDI</em></span><audio controls preload="none" src="audio/05_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">80k<em>MIDI</em></span><audio controls preload="none" src="audio/05_tria_ft_midi.wav"></audio></div><div class="cell tria_ft160_midi"><span class="lab">160k<em>MIDI</em></span><audio controls preload="none" src="audio/05_tria_ft160_midi.wav"></audio></div>
   </div>
 </article>
 <article class="bar">
@@ -170,13 +171,13 @@ audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
     <div class="pair"><div class="cell target"><span class="lab">Recording<em>the GMD bar</em></span><audio controls preload="none" src="audio/06_target.wav"></audio></div><div class="cell ours"><span class="lab">Our model<em>from the EDG alone</em></span><audio controls preload="none" src="audio/06_ours.wav"></audio></div></div>
   </div>
   <div class="tria">
-    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned on GMD</span>
+    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned 80k</span><span class="t-col">Fine-tuned 160k</span>
     <span class="t-row">Bar</span>
     <div class="cell prompt"><span class="lab">The recording above<em>rhythm and timbre prompt</em></span></div>
-    <div class="cell tria_bar"><span class="lab">Released<em>bar prompts</em></span><audio controls preload="none" src="audio/06_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">Fine-tuned<em>bar prompts</em></span><audio controls preload="none" src="audio/06_tria_ft_bar.wav"></audio></div>
+    <div class="cell tria_bar"><span class="lab">Released<em>bar</em></span><audio controls preload="none" src="audio/06_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">80k<em>bar</em></span><audio controls preload="none" src="audio/06_tria_ft_bar.wav"></audio></div><div class="cell tria_ft160_bar"><span class="lab">160k<em>bar</em></span><audio controls preload="none" src="audio/06_tria_ft160_bar.wav"></audio></div>
     <span class="t-row">MIDI</span>
     <div class="prompts"><div class="cell rhythm"><span class="lab">Rhythm<em>MIDI render of the EDG onsets</em></span><audio controls preload="none" src="audio/06_rhythm.wav"></audio></div><div class="cell timbre"><span class="lab">Timbre<em>2 s of the recording before the bar</em></span><audio controls preload="none" src="audio/06_timbre.wav"></audio></div></div>
-    <div class="cell tria_midi"><span class="lab">Released<em>MIDI prompts</em></span><audio controls preload="none" src="audio/06_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">Fine-tuned<em>MIDI prompts</em></span><audio controls preload="none" src="audio/06_tria_ft_midi.wav"></audio></div>
+    <div class="cell tria_midi"><span class="lab">Released<em>MIDI</em></span><audio controls preload="none" src="audio/06_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">80k<em>MIDI</em></span><audio controls preload="none" src="audio/06_tria_ft_midi.wav"></audio></div><div class="cell tria_ft160_midi"><span class="lab">160k<em>MIDI</em></span><audio controls preload="none" src="audio/06_tria_ft160_midi.wav"></audio></div>
   </div>
 </article>
 <article class="bar">
@@ -187,13 +188,13 @@ audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
     <div class="pair"><div class="cell target"><span class="lab">Recording<em>the GMD bar</em></span><audio controls preload="none" src="audio/07_target.wav"></audio></div><div class="cell ours"><span class="lab">Our model<em>from the EDG alone</em></span><audio controls preload="none" src="audio/07_ours.wav"></audio></div></div>
   </div>
   <div class="tria">
-    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned on GMD</span>
+    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned 80k</span><span class="t-col">Fine-tuned 160k</span>
     <span class="t-row">Bar</span>
     <div class="cell prompt"><span class="lab">The recording above<em>rhythm and timbre prompt</em></span></div>
-    <div class="cell tria_bar"><span class="lab">Released<em>bar prompts</em></span><audio controls preload="none" src="audio/07_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">Fine-tuned<em>bar prompts</em></span><audio controls preload="none" src="audio/07_tria_ft_bar.wav"></audio></div>
+    <div class="cell tria_bar"><span class="lab">Released<em>bar</em></span><audio controls preload="none" src="audio/07_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">80k<em>bar</em></span><audio controls preload="none" src="audio/07_tria_ft_bar.wav"></audio></div><div class="cell tria_ft160_bar"><span class="lab">160k<em>bar</em></span><audio controls preload="none" src="audio/07_tria_ft160_bar.wav"></audio></div>
     <span class="t-row">MIDI</span>
     <div class="prompts"><div class="cell rhythm"><span class="lab">Rhythm<em>MIDI render of the EDG onsets</em></span><audio controls preload="none" src="audio/07_rhythm.wav"></audio></div><div class="cell timbre"><span class="lab">Timbre<em>2 s of the recording before the bar</em></span><audio controls preload="none" src="audio/07_timbre.wav"></audio></div></div>
-    <div class="cell tria_midi"><span class="lab">Released<em>MIDI prompts</em></span><audio controls preload="none" src="audio/07_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">Fine-tuned<em>MIDI prompts</em></span><audio controls preload="none" src="audio/07_tria_ft_midi.wav"></audio></div>
+    <div class="cell tria_midi"><span class="lab">Released<em>MIDI</em></span><audio controls preload="none" src="audio/07_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">80k<em>MIDI</em></span><audio controls preload="none" src="audio/07_tria_ft_midi.wav"></audio></div><div class="cell tria_ft160_midi"><span class="lab">160k<em>MIDI</em></span><audio controls preload="none" src="audio/07_tria_ft160_midi.wav"></audio></div>
   </div>
 </article>
 <article class="bar">
@@ -204,13 +205,13 @@ audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
     <div class="pair"><div class="cell target"><span class="lab">Recording<em>the GMD bar</em></span><audio controls preload="none" src="audio/08_target.wav"></audio></div><div class="cell ours"><span class="lab">Our model<em>from the EDG alone</em></span><audio controls preload="none" src="audio/08_ours.wav"></audio></div></div>
   </div>
   <div class="tria">
-    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned on GMD</span>
+    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned 80k</span><span class="t-col">Fine-tuned 160k</span>
     <span class="t-row">Bar</span>
     <div class="cell prompt"><span class="lab">The recording above<em>rhythm and timbre prompt</em></span></div>
-    <div class="cell tria_bar"><span class="lab">Released<em>bar prompts</em></span><audio controls preload="none" src="audio/08_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">Fine-tuned<em>bar prompts</em></span><audio controls preload="none" src="audio/08_tria_ft_bar.wav"></audio></div>
+    <div class="cell tria_bar"><span class="lab">Released<em>bar</em></span><audio controls preload="none" src="audio/08_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">80k<em>bar</em></span><audio controls preload="none" src="audio/08_tria_ft_bar.wav"></audio></div><div class="cell tria_ft160_bar"><span class="lab">160k<em>bar</em></span><audio controls preload="none" src="audio/08_tria_ft160_bar.wav"></audio></div>
     <span class="t-row">MIDI</span>
     <div class="prompts"><div class="cell rhythm"><span class="lab">Rhythm<em>MIDI render of the EDG onsets</em></span><audio controls preload="none" src="audio/08_rhythm.wav"></audio></div><div class="cell timbre"><span class="lab">Timbre<em>2 s of the recording before the bar</em></span><audio controls preload="none" src="audio/08_timbre.wav"></audio></div></div>
-    <div class="cell tria_midi"><span class="lab">Released<em>MIDI prompts</em></span><audio controls preload="none" src="audio/08_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">Fine-tuned<em>MIDI prompts</em></span><audio controls preload="none" src="audio/08_tria_ft_midi.wav"></audio></div>
+    <div class="cell tria_midi"><span class="lab">Released<em>MIDI</em></span><audio controls preload="none" src="audio/08_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">80k<em>MIDI</em></span><audio controls preload="none" src="audio/08_tria_ft_midi.wav"></audio></div><div class="cell tria_ft160_midi"><span class="lab">160k<em>MIDI</em></span><audio controls preload="none" src="audio/08_tria_ft160_midi.wav"></audio></div>
   </div>
 </article>
 <article class="bar">
@@ -221,13 +222,13 @@ audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
     <div class="pair"><div class="cell target"><span class="lab">Recording<em>the GMD bar</em></span><audio controls preload="none" src="audio/09_target.wav"></audio></div><div class="cell ours"><span class="lab">Our model<em>from the EDG alone</em></span><audio controls preload="none" src="audio/09_ours.wav"></audio></div></div>
   </div>
   <div class="tria">
-    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned on GMD</span>
+    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned 80k</span><span class="t-col">Fine-tuned 160k</span>
     <span class="t-row">Bar</span>
     <div class="cell prompt"><span class="lab">The recording above<em>rhythm and timbre prompt</em></span></div>
-    <div class="cell tria_bar"><span class="lab">Released<em>bar prompts</em></span><audio controls preload="none" src="audio/09_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">Fine-tuned<em>bar prompts</em></span><audio controls preload="none" src="audio/09_tria_ft_bar.wav"></audio></div>
+    <div class="cell tria_bar"><span class="lab">Released<em>bar</em></span><audio controls preload="none" src="audio/09_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">80k<em>bar</em></span><audio controls preload="none" src="audio/09_tria_ft_bar.wav"></audio></div><div class="cell tria_ft160_bar"><span class="lab">160k<em>bar</em></span><audio controls preload="none" src="audio/09_tria_ft160_bar.wav"></audio></div>
     <span class="t-row">MIDI</span>
     <div class="prompts"><div class="cell rhythm"><span class="lab">Rhythm<em>MIDI render of the EDG onsets</em></span><audio controls preload="none" src="audio/09_rhythm.wav"></audio></div><div class="cell timbre"><span class="lab">Timbre<em>2 s of the recording before the bar</em></span><audio controls preload="none" src="audio/09_timbre.wav"></audio></div></div>
-    <div class="cell tria_midi"><span class="lab">Released<em>MIDI prompts</em></span><audio controls preload="none" src="audio/09_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">Fine-tuned<em>MIDI prompts</em></span><audio controls preload="none" src="audio/09_tria_ft_midi.wav"></audio></div>
+    <div class="cell tria_midi"><span class="lab">Released<em>MIDI</em></span><audio controls preload="none" src="audio/09_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">80k<em>MIDI</em></span><audio controls preload="none" src="audio/09_tria_ft_midi.wav"></audio></div><div class="cell tria_ft160_midi"><span class="lab">160k<em>MIDI</em></span><audio controls preload="none" src="audio/09_tria_ft160_midi.wav"></audio></div>
   </div>
 </article>
 <article class="bar">
@@ -238,13 +239,13 @@ audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
     <div class="pair"><div class="cell target"><span class="lab">Recording<em>the GMD bar</em></span><audio controls preload="none" src="audio/10_target.wav"></audio></div><div class="cell ours"><span class="lab">Our model<em>from the EDG alone</em></span><audio controls preload="none" src="audio/10_ours.wav"></audio></div></div>
   </div>
   <div class="tria">
-    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned on GMD</span>
+    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned 80k</span><span class="t-col">Fine-tuned 160k</span>
     <span class="t-row">Bar</span>
     <div class="cell prompt"><span class="lab">The recording above<em>rhythm and timbre prompt</em></span></div>
-    <div class="cell tria_bar"><span class="lab">Released<em>bar prompts</em></span><audio controls preload="none" src="audio/10_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">Fine-tuned<em>bar prompts</em></span><audio controls preload="none" src="audio/10_tria_ft_bar.wav"></audio></div>
+    <div class="cell tria_bar"><span class="lab">Released<em>bar</em></span><audio controls preload="none" src="audio/10_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">80k<em>bar</em></span><audio controls preload="none" src="audio/10_tria_ft_bar.wav"></audio></div><div class="cell tria_ft160_bar"><span class="lab">160k<em>bar</em></span><audio controls preload="none" src="audio/10_tria_ft160_bar.wav"></audio></div>
     <span class="t-row">MIDI</span>
     <div class="prompts"><div class="cell rhythm"><span class="lab">Rhythm<em>MIDI render of the EDG onsets</em></span><audio controls preload="none" src="audio/10_rhythm.wav"></audio></div><div class="cell timbre"><span class="lab">Timbre<em>2 s of the recording before the bar</em></span><audio controls preload="none" src="audio/10_timbre.wav"></audio></div></div>
-    <div class="cell tria_midi"><span class="lab">Released<em>MIDI prompts</em></span><audio controls preload="none" src="audio/10_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">Fine-tuned<em>MIDI prompts</em></span><audio controls preload="none" src="audio/10_tria_ft_midi.wav"></audio></div>
+    <div class="cell tria_midi"><span class="lab">Released<em>MIDI</em></span><audio controls preload="none" src="audio/10_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">80k<em>MIDI</em></span><audio controls preload="none" src="audio/10_tria_ft_midi.wav"></audio></div><div class="cell tria_ft160_midi"><span class="lab">160k<em>MIDI</em></span><audio controls preload="none" src="audio/10_tria_ft160_midi.wav"></audio></div>
   </div>
 </article>
 <article class="bar">
@@ -255,13 +256,13 @@ audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
     <div class="pair"><div class="cell target"><span class="lab">Recording<em>the GMD bar</em></span><audio controls preload="none" src="audio/11_target.wav"></audio></div><div class="cell ours"><span class="lab">Our model<em>from the EDG alone</em></span><audio controls preload="none" src="audio/11_ours.wav"></audio></div></div>
   </div>
   <div class="tria">
-    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned on GMD</span>
+    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned 80k</span><span class="t-col">Fine-tuned 160k</span>
     <span class="t-row">Bar</span>
     <div class="cell prompt"><span class="lab">The recording above<em>rhythm and timbre prompt</em></span></div>
-    <div class="cell tria_bar"><span class="lab">Released<em>bar prompts</em></span><audio controls preload="none" src="audio/11_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">Fine-tuned<em>bar prompts</em></span><audio controls preload="none" src="audio/11_tria_ft_bar.wav"></audio></div>
+    <div class="cell tria_bar"><span class="lab">Released<em>bar</em></span><audio controls preload="none" src="audio/11_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">80k<em>bar</em></span><audio controls preload="none" src="audio/11_tria_ft_bar.wav"></audio></div><div class="cell tria_ft160_bar"><span class="lab">160k<em>bar</em></span><audio controls preload="none" src="audio/11_tria_ft160_bar.wav"></audio></div>
     <span class="t-row">MIDI</span>
     <div class="prompts"><div class="cell rhythm"><span class="lab">Rhythm<em>MIDI render of the EDG onsets</em></span><audio controls preload="none" src="audio/11_rhythm.wav"></audio></div><div class="cell timbre"><span class="lab">Timbre<em>2 s of the recording before the bar</em></span><audio controls preload="none" src="audio/11_timbre.wav"></audio></div></div>
-    <div class="cell tria_midi"><span class="lab">Released<em>MIDI prompts</em></span><audio controls preload="none" src="audio/11_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">Fine-tuned<em>MIDI prompts</em></span><audio controls preload="none" src="audio/11_tria_ft_midi.wav"></audio></div>
+    <div class="cell tria_midi"><span class="lab">Released<em>MIDI</em></span><audio controls preload="none" src="audio/11_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">80k<em>MIDI</em></span><audio controls preload="none" src="audio/11_tria_ft_midi.wav"></audio></div><div class="cell tria_ft160_midi"><span class="lab">160k<em>MIDI</em></span><audio controls preload="none" src="audio/11_tria_ft160_midi.wav"></audio></div>
   </div>
 </article>
 <article class="bar">
@@ -272,13 +273,13 @@ audio:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
     <div class="pair"><div class="cell target"><span class="lab">Recording<em>the GMD bar</em></span><audio controls preload="none" src="audio/12_target.wav"></audio></div><div class="cell ours"><span class="lab">Our model<em>from the EDG alone</em></span><audio controls preload="none" src="audio/12_ours.wav"></audio></div></div>
   </div>
   <div class="tria">
-    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned on GMD</span>
+    <span class="t-head">TRIA</span><span class="t-col">Prompts</span><span class="t-col">Released</span><span class="t-col">Fine-tuned 80k</span><span class="t-col">Fine-tuned 160k</span>
     <span class="t-row">Bar</span>
     <div class="cell prompt"><span class="lab">The recording above<em>rhythm and timbre prompt</em></span></div>
-    <div class="cell tria_bar"><span class="lab">Released<em>bar prompts</em></span><audio controls preload="none" src="audio/12_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">Fine-tuned<em>bar prompts</em></span><audio controls preload="none" src="audio/12_tria_ft_bar.wav"></audio></div>
+    <div class="cell tria_bar"><span class="lab">Released<em>bar</em></span><audio controls preload="none" src="audio/12_tria_bar.wav"></audio></div><div class="cell tria_ft_bar"><span class="lab">80k<em>bar</em></span><audio controls preload="none" src="audio/12_tria_ft_bar.wav"></audio></div><div class="cell tria_ft160_bar"><span class="lab">160k<em>bar</em></span><audio controls preload="none" src="audio/12_tria_ft160_bar.wav"></audio></div>
     <span class="t-row">MIDI</span>
     <div class="prompts"><div class="cell rhythm"><span class="lab">Rhythm<em>MIDI render of the EDG onsets</em></span><audio controls preload="none" src="audio/12_rhythm.wav"></audio></div><div class="cell timbre"><span class="lab">Timbre<em>2 s of the recording before the bar</em></span><audio controls preload="none" src="audio/12_timbre.wav"></audio></div></div>
-    <div class="cell tria_midi"><span class="lab">Released<em>MIDI prompts</em></span><audio controls preload="none" src="audio/12_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">Fine-tuned<em>MIDI prompts</em></span><audio controls preload="none" src="audio/12_tria_ft_midi.wav"></audio></div>
+    <div class="cell tria_midi"><span class="lab">Released<em>MIDI</em></span><audio controls preload="none" src="audio/12_tria_midi.wav"></audio></div><div class="cell tria_ft_midi"><span class="lab">80k<em>MIDI</em></span><audio controls preload="none" src="audio/12_tria_ft_midi.wav"></audio></div><div class="cell tria_ft160_midi"><span class="lab">160k<em>MIDI</em></span><audio controls preload="none" src="audio/12_tria_ft160_midi.wav"></audio></div>
   </div>
 </article>
   </div>
