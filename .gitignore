@@ -94,6 +94,8 @@ tria_finetune_gmd/runs/*/log.txt
 tria_finetune_gmd/predictions/
 tria_finetune_gmd/results/evaluation/
 tria_finetune_gmd/logs/
+tria_finetune_gmd/results/*/evaluation/
+tria_finetune_gmd/gmd_long_160k.yml
 
 # Dataset caches (moved from ../pca_diffusion; rebuild with code/experiment/scripts/build_*_cache.py)
 /caches/
