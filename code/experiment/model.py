@@ -692,6 +692,28 @@ class DiffusionTransformerConfig:
     x0_prior_dim: int = 72
 
 
+def validate_noise_prediction_dimensions(*, x_dim: int, d_model: int) -> None:
+    """Reject a bottleneck when training this direct epsilon predictor.
+
+    IID Gaussian noise spans all x_dim coordinates, even when the clean
+    codec targets occupy a smaller subspace. The linear output head can
+    span at most d_model directions, and final LayerNorm removes one
+    affine degree of freedom at each fixed timestep. A wider hidden state
+    is therefore required. Checkpoint loading deliberately does not call
+    this guard, so older, invalid runs remain available for diagnosis.
+    """
+    if int(d_model) <= int(x_dim):
+        missing = max(0, int(x_dim) - int(d_model))
+        floor = float(missing) / max(1, int(x_dim))
+        raise ValueError(
+            f"direct epsilon prediction requires d_model > x_dim; got "
+            f"d_model={d_model}, x_dim={x_dim}. The output head cannot represent "
+            f"all Gaussian noise directions (linear-head MSE floor >= {floor:.6f}; "
+            "final LayerNorm can remove another direction). Increase --d-model "
+            "and start a new run; for 1024-D targets use --d-model 1280."
+        )
+
+
 class ConditionalDiffusionTransformer(nn.Module):
     def __init__(self, cfg: DiffusionTransformerConfig):
         super().__init__()

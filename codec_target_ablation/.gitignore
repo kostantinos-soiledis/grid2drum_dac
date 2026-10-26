@@ -4,8 +4,8 @@
 /runs/**/best_samples/
 /runs/**/eval_plots/
 /exports/**/wavs/
-/results/evaluation/**/wavs/
-/results/evaluation/target_audio_cache/
-/results/evaluation/**/fad_assets/
-/results/evaluation/**/eval_input/
-/results/evaluation/**/per_clip_metrics.jsonl
+/results/**/wavs/
+/results/**/target_audio_cache/
+/results/**/fad_assets/
+/results/**/eval_input/
+/results/**/per_clip_metrics.jsonl
