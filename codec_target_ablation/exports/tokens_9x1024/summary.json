@@ -1,0 +1,10 @@
+{
+  "best_val_ce": 6.1271257400512695,
+  "checkpoint": "codec_target_ablation/runs/tokens_9x1024/best_tokens.pt",
+  "checkpoint_epoch": 7,
+  "decoding": "argmax",
+  "num_examples": 1733,
+  "num_parameters": 85871104,
+  "run_dir": "codec_target_ablation/runs/tokens_9x1024",
+  "split": "test"
+}
