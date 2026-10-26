@@ -24,12 +24,13 @@ import soundfile as sf
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ARMS = (
-    ("pca72", "runs/final/exports/postsnap_pca", "72-D post-snap", "plain diffusion, 25 steps"),
-    ("tokens", "codec_target_ablation/exports/tokens_9x1024", "Discrete tokens", "parallel classifier, argmax"),
-    ("full1024", "codec_target_ablation/exports/postsnap_full1024", "1024-D post-snap", "plain diffusion, 25 steps"),
-    ("full1024_projected", "codec_target_ablation/exports/postsnap_full1024_projected", "1024-D + projection", "same model, projected to 72-D before decoding"),
-)
+def arms_for_width(width: int):
+    return (
+        ("pca72", f"codec_target_ablation/exports/postsnap_pca72_d{width}", "72-D post-snap", f"matched width {width}, plain diffusion, 25 steps"),
+        ("tokens", "codec_target_ablation/exports/tokens_9x1024", "Discrete tokens", "parallel classifier, argmax"),
+        ("full1024", f"codec_target_ablation/exports/postsnap_full1024_d{width}", "1024-D post-snap", f"width {width}, plain diffusion, 25 steps"),
+        ("full1024_projected", f"codec_target_ablation/exports/postsnap_full1024_d{width}_projected", "1024-D + projection", "same model, projected to 72-D before decoding"),
+    )
 BEGIN = "<!-- codec-target-controls:start -->"
 END = "<!-- codec-target-controls:end -->"
 DESCRIPTION = (
@@ -39,7 +40,16 @@ DESCRIPTION = (
     'the 72-D post-snap subspace before decoding. These controls all use '
     'the 250 Hz EDG without the auxiliary RVQ-CE loss; our main model above '
     'uses that loss. The projection control uses the same checkpoint and '
-    'sampling seeds as the unprojected 1024-D model.</p>'
+    'sampling seeds as the unprojected 1024-D model. The 72-D and 1024-D '
+    'diffusion controls both use width {width}.</p>'
+)
+LEGACY_NOTE = (
+    '<p class="codec-audit-note" role="note"><strong>1024-D rerun pending.</strong> '
+    'The two original 1024-D players below use an invalid width-768 noise '
+    'predictor for 1024-dimensional noise. They are retained only as failed '
+    'configuration diagnostics and do not establish a result about the '
+    '1024-D representation. Corrected comparisons will use wider, matched '
+    '72-D and 1024-D models.</p>'
 )
 STYLE = """/* codec-target-controls */
 .codec-controls { border-top: 1px solid var(--line); padding-top: 10px; }
@@ -79,11 +89,31 @@ def match_loudness(source: Path, reference: Path, destination: Path) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--docs-root", type=Path, required=True)
+    parser.add_argument("--diffusion-width", type=int, default=1280)
+    parser.add_argument("--mark-legacy-invalid", action="store_true", help="label existing failed 1024-D clips; do not regenerate audio")
     args = parser.parse_args()
     docs = args.docs_root.resolve()
     page = docs / "index.html"
     source = page.read_text()
-    manifests = {name: read_manifest(ROOT / directory) for name, directory, _, _ in ARMS}
+    if args.mark_legacy_invalid:
+        provenance_path = docs / "codec_target_examples.json"
+        data = json.loads(provenance_path.read_text()) if provenance_path.is_file() else None
+        if data is not None and int(data.get("diffusion_width", 0)) > 1024:
+            raise ValueError("this page already contains a corrected-width rerun; do not mark it as legacy")
+        source = source.replace("1024-D post-snap<em>", "1024-D post-snap (invalid run)<em>")
+        source = source.replace("1024-D + projection<em>", "1024-D + projection (invalid run)<em>")
+        if 'class="codec-audit-note"' not in source:
+            source = re.sub(r'(<p class="codec-description">.*?</p>)', lambda m: m[0] + LEGACY_NOTE, source, count=1, flags=re.S)
+        page.write_text(source)
+        if data is not None:
+            data["legacy_full1024_status"] = "invalid: width-768 epsilon head for 1024-D noise; rerun pending"
+            provenance_path.write_text(json.dumps(data, indent=2) + "\n")
+        print(f"Marked legacy 1024-D controls invalid in {page}; audio unchanged")
+        return
+    if args.diffusion_width <= 1024 or args.diffusion_width % 8:
+        raise ValueError("--diffusion-width must exceed 1024 and be divisible by eight")
+    arms = arms_for_width(args.diffusion_width)
+    manifests = {name: read_manifest(ROOT / directory) for name, directory, _, _ in arms}
     # Check every source before writing audio or changing the page.
     articles = re.findall(r'<article class="bar">.*?</article>', source, flags=re.S)
     if not articles:
@@ -98,7 +128,7 @@ def main() -> None:
         reference = docs / "audio" / f"{prefix[1]}_target.wav"
         if not reference.is_file():
             raise FileNotFoundError(reference)
-        for name, directory, _, _ in ARMS:
+        for name, directory, _, _ in arms:
             row = manifests[name][key]
             if row.get("split") != "test":
                 raise ValueError(f"expected test export for {key}: {directory}")
@@ -109,7 +139,7 @@ def main() -> None:
     provenance = []
     for key, prefix, reference in examples:
         item = {"example": prefix, "source_id": key[0], "beat_index": key[1], "audio": {}}
-        for name, directory, _, _ in ARMS:
+        for name, directory, _, _ in arms:
             row = manifests[name][key]
             export = Path(directory) / row["wav"]
             destination = docs / "audio" / f"{prefix}_{name}.wav"
@@ -124,7 +154,7 @@ def main() -> None:
             f'<div class="cell {name}"><span class="lab">{title}<em>{detail}</em></span>'
             f'<audio controls preload="none" aria-label="Example {prefix}: {title}" '
             f'src="audio/{prefix}_{name}.wav"></audio></div>'
-            for name, _, title, detail in ARMS
+            for name, _, title, detail in arms
         ]
         controls = BEGIN + '<details class="codec-controls"><summary>Codec target ablation</summary>'
         controls += '<div class="duo">' + "".join(cells[:2]) + '</div>'
@@ -138,14 +168,19 @@ def main() -> None:
     source = re.sub(r'<article class="bar">.*?</article>', extend_article, source, flags=re.S)
     if "/* codec-target-controls */" not in source:
         source = source.replace("</style>", STYLE + "</style>", 1)
-    if 'class="codec-description"' not in source:
-        source = source.replace('  </section>\n  <div class="list">', f'    {DESCRIPTION}\n  </section>\n  <div class="list">', 1)
+    description = DESCRIPTION.format(width=args.diffusion_width)
+    source = re.sub(r'<p class="codec-audit-note".*?</p>', "", source, flags=re.S)
+    if 'class="codec-description"' in source:
+        source = re.sub(r'<p class="codec-description">.*?</p>', lambda _: description, source, flags=re.S)
+    else:
+        source = source.replace('  </section>\n  <div class="list">', f'    {description}\n  </section>\n  <div class="list">', 1)
     page.write_text(source)
     (docs / "codec_target_examples.json").write_text(json.dumps({
         "split": "test", "normalization": "BS.1770 loudness matched to recording, peak capped at 0.999",
+        "diffusion_width": args.diffusion_width,
         "examples": provenance,
     }, indent=2) + "\n")
-    print(f"Updated {page}: {len(examples)} examples, {len(examples) * len(ARMS)} new audio players")
+    print(f"Updated {page}: {len(examples)} examples, {len(examples) * len(arms)} new audio players")
 
 
 if __name__ == "__main__":

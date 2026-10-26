@@ -1,0 +1,145 @@
+{
+  "checkpoint": "codec_target_ablation/runs/postsnap_full1024/best_diffusion.pt",
+  "seed": 1234,
+  "checkpoint_epoch": 147,
+  "recorded_validation_noise_mse": 0.26123560359701514,
+  "normalization": {
+    "checkpoint_cache_mean_max_difference": 0.0,
+    "checkpoint_cache_std_max_difference": 0.0,
+    "minimum_std": 2.6352901458740234
+  },
+  "pca_orthonormality_max_error": 3.5762786865234375e-07,
+  "splits": {
+    "train": {
+      "num_examples": 11523,
+      "all_identities_and_frame_counts_match": true
+    },
+    "validation": {
+      "num_examples": 1534,
+      "all_identities_and_frame_counts_match": true
+    },
+    "test": {
+      "num_examples": 1733,
+      "all_identities_and_frame_counts_match": true
+    }
+  },
+  "sampled_cache_checks": [
+    {
+      "split": "train",
+      "index": 0,
+      "raw_latents_codes_grids_and_times_identical": true,
+      "pca_reconstruction_relative_l2": 3.3477528631919995e-05,
+      "projection_relative_l2": 3.347554229549132e-05,
+      "normalization_roundtrip_max_error": 1.9073486328125e-06
+    },
+    {
+      "split": "train",
+      "index": 5761,
+      "raw_latents_codes_grids_and_times_identical": true,
+      "pca_reconstruction_relative_l2": 3.4150289138779044e-05,
+      "projection_relative_l2": 3.4150289138779044e-05,
+      "normalization_roundtrip_max_error": 1.9073486328125e-06
+    },
+    {
+      "split": "train",
+      "index": 11522,
+      "raw_latents_codes_grids_and_times_identical": true,
+      "pca_reconstruction_relative_l2": 3.3529777283547446e-05,
+      "projection_relative_l2": 3.3529777283547446e-05,
+      "normalization_roundtrip_max_error": 1.430511474609375e-06
+    },
+    {
+      "split": "validation",
+      "index": 0,
+      "raw_latents_codes_grids_and_times_identical": true,
+      "pca_reconstruction_relative_l2": 3.34196665789932e-05,
+      "projection_relative_l2": 3.34196665789932e-05,
+      "normalization_roundtrip_max_error": 1.9073486328125e-06
+    },
+    {
+      "split": "validation",
+      "index": 767,
+      "raw_latents_codes_grids_and_times_identical": true,
+      "pca_reconstruction_relative_l2": 3.538094460964203e-05,
+      "projection_relative_l2": 3.5382025089347735e-05,
+      "normalization_roundtrip_max_error": 9.5367431640625e-07
+    },
+    {
+      "split": "validation",
+      "index": 1533,
+      "raw_latents_codes_grids_and_times_identical": true,
+      "pca_reconstruction_relative_l2": 3.19667742587626e-05,
+      "projection_relative_l2": 3.19667742587626e-05,
+      "normalization_roundtrip_max_error": 9.5367431640625e-07
+    },
+    {
+      "split": "test",
+      "index": 0,
+      "raw_latents_codes_grids_and_times_identical": true,
+      "pca_reconstruction_relative_l2": 3.447715425863862e-05,
+      "projection_relative_l2": 3.447715425863862e-05,
+      "normalization_roundtrip_max_error": 9.5367431640625e-07
+    },
+    {
+      "split": "test",
+      "index": 866,
+      "raw_latents_codes_grids_and_times_identical": true,
+      "pca_reconstruction_relative_l2": 3.2713003747630864e-05,
+      "projection_relative_l2": 3.2713003747630864e-05,
+      "normalization_roundtrip_max_error": 1.430511474609375e-06
+    },
+    {
+      "split": "test",
+      "index": 1732,
+      "raw_latents_codes_grids_and_times_identical": true,
+      "pca_reconstruction_relative_l2": 3.421341170906089e-05,
+      "projection_relative_l2": 3.421341170906089e-05,
+      "normalization_roundtrip_max_error": 1.430511474609375e-06
+    }
+  ],
+  "noise_output_bottleneck": {
+    "input_projection_shape": [
+      768,
+      1024
+    ],
+    "output_projection_shape": [
+      1024,
+      768
+    ],
+    "minimum_unrepresentable_noise_dimensions": 256,
+    "expected_noise_mse_lower_bound": 0.25,
+    "monte_carlo_noise_mse_outside_output_span": 0.2507440447807312,
+    "terminal_alpha_bar": 3.880950316670351e-06,
+    "terminal_x0_mse_lower_bound_before_clipping": 64416.962177682995
+  },
+  "validation_forward_checks": [
+    {
+      "step": 0,
+      "noise_mse": 0.2638639509677887,
+      "noise_mse_outside_output_span": 0.2513313889503479,
+      "clean_mse_before_clipping": 0.0014406150439754128,
+      "clean_fraction_clipped_at_6": 0.0
+    },
+    {
+      "step": 12,
+      "noise_mse": 0.26149559020996094,
+      "noise_mse_outside_output_span": 0.25063586235046387,
+      "clean_mse_before_clipping": 0.30364754796028137,
+      "clean_fraction_clipped_at_6": 0.0
+    },
+    {
+      "step": 24,
+      "noise_mse": 0.26000410318374634,
+      "noise_mse_outside_output_span": 0.24897313117980957,
+      "clean_mse_before_clipping": 66994.703125,
+      "clean_fraction_clipped_at_6": 0.9808297753334045
+    }
+  ],
+  "decoder_target_checks": {
+    "frames": 32,
+    "sample_rate": 44100,
+    "pca_vs_raw_relative_l2": 1.227823645422177e-06,
+    "projected_vs_raw_relative_l2": 1.227823645422177e-06
+  },
+  "conclusion": "Original width-768 run is confounded by an epsilon prediction rank bottleneck; rerun required."
+}

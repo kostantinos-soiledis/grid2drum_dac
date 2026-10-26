@@ -62,6 +62,7 @@ from data.encodec_utils import (
     resolve_codec_metadata_from_cache_config,
     resolve_codec_metadata_from_payload,
     resolve_device,
+    resolve_target_dim_from_cache_config,
     resolve_target_layout_from_cache_config,
     resolve_target_pca_basis_path_from_cache_config,
 )
@@ -91,6 +92,7 @@ from model import (
     resolve_target_token_rate_hz,
     save_eval_plot_multi_t,
     save_inference_wav,
+    validate_noise_prediction_dimensions,
 )
 from scripts.conditioning_ablation import (
     VALID_CONDITIONING_ABLATIONS,
@@ -529,6 +531,11 @@ def main() -> None:
     plot_steps = _resolve_eval_plot_steps(str(args.eval_plot_steps), num_steps=int(args.num_steps))
     fixed_sample_epochs = _parse_optional_int_tuple(str(args.fixed_sample_epochs))
     cache_root_path = Path(args.cache_root).expanduser().resolve()
+    # Validate before device initialization or --overwrite can touch a run.
+    validate_noise_prediction_dimensions(
+        x_dim=resolve_target_dim_from_cache_config(cache_root_path),
+        d_model=int(args.d_model),
+    )
     invalid_fixed_epochs = [int(epoch) for epoch in fixed_sample_epochs if int(epoch) < 0]
     if invalid_fixed_epochs:
         raise ValueError(f"--fixed-sample-epochs must be non-negative, got {invalid_fixed_epochs}")
@@ -660,6 +667,7 @@ def main() -> None:
     target_layout = resolve_target_layout_from_cache_config(args.cache_root)
     target_pca_basis_path = resolve_target_pca_basis_path_from_cache_config(args.cache_root)
     target_dim = int(sample_batch["target_btd"].shape[-1])
+    validate_noise_prediction_dimensions(x_dim=target_dim, d_model=int(args.d_model))
     target_full_dim = int(sample_batch.get("target_full_dim", target_dim))
     fixed_val_batch = apply_conditioning_ablation(
         fixed_val_batch,
