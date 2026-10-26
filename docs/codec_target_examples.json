@@ -470,5 +470,6 @@
         }
       }
     }
-  ]
+  ],
+  "legacy_full1024_status": "invalid: width-768 epsilon head for 1024-D noise; rerun pending"
 }
