@@ -1,0 +1,11 @@
+# Keep scripts, configs, histories, CSV metrics, and statistics.
+# Rebuild checkpoints, decoded caches, and audio with run.sh.
+/runs/**/*.pt
+/runs/**/best_samples/
+/runs/**/eval_plots/
+/exports/**/wavs/
+/results/evaluation/**/wavs/
+/results/evaluation/target_audio_cache/
+/results/evaluation/**/fad_assets/
+/results/evaluation/**/eval_input/
+/results/evaluation/**/per_clip_metrics.jsonl

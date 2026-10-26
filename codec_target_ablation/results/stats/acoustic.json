@@ -1,0 +1,220 @@
+{
+  "per_clip_csv": "codec_target_ablation/results/acoustic_per_clip.csv",
+  "cluster_col": "source_id",
+  "reps": 5000,
+  "seed": 1234,
+  "available_models": [
+    "postsnap_full1024",
+    "postsnap_full1024_projected",
+    "postsnap_pca",
+    "regression_6layer",
+    "tokens_9x1024"
+  ],
+  "pairs": {
+    "tokens_9x1024:postsnap_pca": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 4.425801642011234,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            4.286096062012924,
+            4.555826033843575
+          ],
+          "clustered_ci95": [
+            4.066445782053082,
+            4.799413857772615
+          ],
+          "ci_width_inflation": 2.7174142745238785,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.031196520890270342,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.03575796796256478,
+            -0.02670131031479082
+          ],
+          "clustered_ci95": [
+            -0.03941066873896524,
+            -0.022620443402013152
+          ],
+          "ci_width_inflation": 1.8539096861057751,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "tokens_9x1024:regression_6layer": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": -2.935381745163994,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -3.063537868687134,
+            -2.8090427441467667
+          ],
+          "clustered_ci95": [
+            -3.3605336650886337,
+            -2.553143172328195
+          ],
+          "ci_width_inflation": 3.172518507844234,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.01497614659013809,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.0186578246773945,
+            -0.011287065664004033
+          ],
+          "clustered_ci95": [
+            -0.024033780392276164,
+            -0.006636359766905498
+          ],
+          "ci_width_inflation": 2.3603295934332875,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0003999200159968006,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "postsnap_full1024:postsnap_pca": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 11.0324883238126,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            10.806306191517038,
+            11.260647574512516
+          ],
+          "clustered_ci95": [
+            10.01742619418281,
+            12.23588554574707
+          ],
+          "ci_width_inflation": 4.8828027439145645,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.5975086901622669,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.6048400914870515,
+            -0.5900494722026183
+          ],
+          "clustered_ci95": [
+            -0.6246006950117786,
+            -0.5693223468233971
+          ],
+          "ci_width_inflation": 3.737392405641901,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "postsnap_full1024_projected:postsnap_pca": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 11.282716305353569,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            11.029763325644723,
+            11.54315528393961
+          ],
+          "clustered_ci95": [
+            10.129129851904423,
+            12.625593440344222
+          ],
+          "ci_width_inflation": 4.86268541628744,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": -0.5470265531873411,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            -0.5545392284073214,
+            -0.5395209654930386
+          ],
+          "clustered_ci95": [
+            -0.5758127936138906,
+            -0.5185052186694917
+          ],
+          "ci_width_inflation": 3.815859082470706,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    },
+    "postsnap_full1024_projected:postsnap_full1024": {
+      "n_shared_clips": 1733,
+      "metrics": {
+        "mel_mae_db": {
+          "mean_diff": 0.2502279815409683,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            0.1857402269646259,
+            0.3148515083992061
+          ],
+          "clustered_ci95": [
+            0.0640358116871639,
+            0.4519855849222435
+          ],
+          "ci_width_inflation": 3.004770527598326,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.004599080183963208,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        },
+        "onset_flux_cosine": {
+          "mean_diff": 0.05048213697492593,
+          "n_clips": 1733,
+          "n_clusters": 71,
+          "naive_ci95": [
+            0.0474688781143059,
+            0.05360120856443514
+          ],
+          "clustered_ci95": [
+            0.046901189976035734,
+            0.05379799143151993
+          ],
+          "ci_width_inflation": 1.124662395735513,
+          "naive_signflip_p": 0.0001999600079984003,
+          "clustered_signflip_p": 0.0001999600079984003,
+          "naive_resolved": true,
+          "clustered_resolved": true
+        }
+      }
+    }
+  }
+}

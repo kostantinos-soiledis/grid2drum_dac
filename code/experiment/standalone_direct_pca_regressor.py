@@ -350,29 +350,23 @@ def _infer_step_seconds(
     if int(grid_times_sec_bt.dim()) != 2:
         raise ValueError(f"grid_times_sec_bt must be [B,T], got {tuple(grid_times_sec_bt.shape)}")
     batch_size = int(grid_times_sec_bt.shape[0])
+    if grid_times_sec_bt.shape[1] <= 1:
+        return torch.full(
+            (batch_size,), float(max(1.0e-6, float(default_step_seconds))),
+            dtype=grid_times_sec_bt.dtype, device=grid_times_sec_bt.device,
+        )
     lengths = _lengths_from_mask(
         grid_valid_mask_bt,
         fallback=int(grid_times_sec_bt.shape[1]),
         batch_size=batch_size,
         device=grid_times_sec_bt.device,
     )
-    out = torch.full(
-        (batch_size,),
-        float(max(1.0e-6, float(default_step_seconds))),
-        dtype=grid_times_sec_bt.dtype,
-        device=grid_times_sec_bt.device,
-    )
-    for batch_idx in range(batch_size):
-        length = int(lengths[batch_idx].item())
-        if length <= 1:
-            continue
-        diffs = grid_times_sec_bt[batch_idx, 1:length].to(dtype=torch.float32) - grid_times_sec_bt[
-            batch_idx, : length - 1
-        ].to(dtype=torch.float32)
-        diffs = diffs[torch.isfinite(diffs) & diffs.gt(1.0e-6)]
-        if int(diffs.numel()) > 0:
-            out[batch_idx] = diffs.median()
-    return out
+    diffs = grid_times_sec_bt[:, 1:].float() - grid_times_sec_bt[:, :-1].float()
+    valid = torch.arange(diffs.shape[1], device=diffs.device)[None, :] < (lengths - 1)[:, None]
+    valid = valid & torch.isfinite(diffs) & diffs.gt(1.0e-6)
+    medians = torch.nanmedian(diffs.masked_fill(~valid, float("nan")), dim=1).values
+    fallback = torch.full_like(medians, float(max(1.0e-6, float(default_step_seconds))))
+    return torch.where(torch.isfinite(medians), medians, fallback).to(grid_times_sec_bt.dtype)
 
 
 def _fill_invalid_token_times(token_times_sec_bt: torch.Tensor, valid_mask_bt: Optional[torch.Tensor]) -> torch.Tensor:
@@ -384,12 +378,37 @@ def _fill_invalid_token_times(token_times_sec_bt: torch.Tensor, valid_mask_bt: O
         )
     token_times = token_times_sec_bt.to(dtype=torch.float32)
     valid_bt = valid_mask_bt.to(device=token_times.device, dtype=torch.bool)
-    if bool(torch.all(valid_bt)):
-        return token_times
     lengths = valid_bt.sum(dim=1, dtype=torch.long).clamp_min(1)
     last_idx = (lengths - 1).view(int(token_times.shape[0]), 1)
     last_vals = token_times.gather(dim=1, index=last_idx).expand(-1, int(token_times.shape[1]))
     return torch.where(valid_bt, token_times, last_vals)
+
+
+def _batched_grid_sample_indices(
+    grid_times_sec_bt: torch.Tensor,
+    sample_times_btw: torch.Tensor,
+    grid_valid_mask_bt: Optional[torch.Tensor],
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Search valid grid times for a whole batch without transferring lengths to CPU."""
+    batch_size, grid_len = grid_times_sec_bt.shape
+    lengths = _lengths_from_mask(
+        grid_valid_mask_bt, fallback=grid_len, batch_size=batch_size, device=grid_times_sec_bt.device
+    )
+    last = grid_times_sec_bt.gather(1, (lengths - 1)[:, None])
+    valid = torch.arange(grid_len, device=grid_times_sec_bt.device)[None, :] < lengths[:, None]
+    times = torch.where(valid, grid_times_sec_bt, last).contiguous()
+    flat = sample_times_btw.reshape(batch_size, -1).to(times.dtype)
+    flat = torch.minimum(torch.maximum(flat, times[:, :1]), last).contiguous()
+    hi = torch.searchsorted(times, flat, right=False)
+    hi = torch.minimum(hi, (lengths - 1)[:, None]).clamp_min(0)
+    lo = (hi - 1).clamp_min(0)
+    return flat, lo, hi, times.gather(1, lo), times.gather(1, hi)
+
+
+def _gather_grid_values(grid_bct: torch.Tensor, indices_bn: torch.Tensor, window_len: int) -> torch.Tensor:
+    batch_size, channels, _ = grid_bct.shape
+    values = grid_bct.gather(2, indices_bn[:, None, :].expand(-1, channels, -1))
+    return values.reshape(batch_size, channels, -1, window_len).permute(0, 2, 1, 3).contiguous()
 
 
 def _sample_grid_linear_single(
@@ -451,6 +470,9 @@ def sample_grid_windows_in_seconds(
     if int(grid_bft.dim()) != 3:
         raise ValueError(f"grid_bft must be [B,F,Tg], got {tuple(grid_bft.shape)}")
     batch_size = int(grid_bft.shape[0])
+    if grid_bft.shape[-1] == 0:
+        radius = int(max(0, int(window_radius)))
+        return grid_bft.new_zeros((batch_size, token_times_sec_bt.shape[1], grid_bft.shape[1], 2 * radius + 1))
     nearest_mask = None
     if nearest_feature_mask_f is not None:
         nearest_mask = nearest_feature_mask_f.to(device=grid_bft.device, dtype=torch.bool)
@@ -466,26 +488,21 @@ def sample_grid_windows_in_seconds(
     radius = int(max(0, int(window_radius)))
     offsets = torch.arange(-radius, radius + 1, device=grid_bft.device, dtype=grid_bft.dtype)
     sample_times = token_times.to(dtype=grid_bft.dtype)[:, :, None] + (step_b[:, None, None] * offsets[None, None, :])
-    grid_lengths = _lengths_from_mask(grid_valid_mask_bt, fallback=int(grid_bft.shape[2]), batch_size=batch_size, device=grid_bft.device)
-    outputs: list[torch.Tensor] = []
-    for batch_idx in range(batch_size):
-        grid_len = int(grid_lengths[batch_idx].item())
-        valid_grid_ft = grid_bft[batch_idx, :, :grid_len].to(dtype=torch.float32)
-        valid_times_t = grid_times_sec_bt[batch_idx, :grid_len].to(device=grid_bft.device, dtype=torch.float32)
-        sampled_tfw = _sample_grid_linear_single(
-            grid_ft=valid_grid_ft,
-            grid_times_t=valid_times_t,
-            sample_times_tw=sample_times[batch_idx].to(dtype=torch.float32),
-        )
-        if nearest_mask is not None and bool(nearest_mask.any().item()):
-            sampled_nearest = _sample_grid_nearest_value_single(
-                grid_ft=valid_grid_ft,
-                grid_times_t=valid_times_t,
-                sample_times_tw=sample_times[batch_idx].to(dtype=torch.float32),
-            )
-            sampled_tfw[:, nearest_mask, :] = sampled_nearest[:, nearest_mask, :]
-        outputs.append(sampled_tfw.unsqueeze(0))
-    return torch.cat(outputs, dim=0)
+    flat, lo, hi, t_lo, t_hi = _batched_grid_sample_indices(
+        grid_times_sec_bt.float(), sample_times.float(), grid_valid_mask_bt
+    )
+    window_len = int(sample_times.shape[-1])
+    x_lo = _gather_grid_values(grid_bft.float(), lo, window_len)
+    x_hi = _gather_grid_values(grid_bft.float(), hi, window_len)
+    denom = t_hi - t_lo
+    weight = torch.where(denom.abs() > 1.0e-8, (flat - t_lo) / denom, torch.zeros_like(flat))
+    weight = weight.reshape(batch_size, -1, 1, window_len)
+    sampled = x_lo + (x_hi - x_lo) * weight
+    if nearest_mask is not None:
+        nearest_idx = torch.where((flat - t_lo).abs() > (t_hi - flat).abs(), hi, lo)
+        sampled_nearest = _gather_grid_values(grid_bft.float(), nearest_idx, window_len)
+        sampled = torch.where(nearest_mask[None, None, :, None], sampled_nearest, sampled)
+    return sampled.contiguous()
 
 
 def _sample_grid_nearest_single(
@@ -520,6 +537,9 @@ def sample_grid_id_windows_in_seconds(
     valid_mask_bt: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     batch_size = int(grid_ids_bct.shape[0])
+    if grid_ids_bct.shape[-1] == 0:
+        radius = int(max(0, int(window_radius)))
+        return grid_ids_bct.new_full((batch_size, token_times_sec_bt.shape[1], grid_ids_bct.shape[1], 2 * radius + 1), -1)
     token_times = _fill_invalid_token_times(token_times_sec_bt, valid_mask_bt)
     if float(step_seconds) > 0.0:
         step_b = torch.full((batch_size,), float(step_seconds), dtype=token_times.dtype, device=token_times.device)
@@ -532,17 +552,11 @@ def sample_grid_id_windows_in_seconds(
     radius = int(max(0, int(window_radius)))
     offsets = torch.arange(-radius, radius + 1, device=token_times.device, dtype=token_times.dtype)
     sample_times = token_times[:, :, None] + (step_b[:, None, None] * offsets[None, None, :])
-    grid_lengths = _lengths_from_mask(grid_valid_mask_bt, fallback=int(grid_ids_bct.shape[2]), batch_size=batch_size, device=grid_ids_bct.device)
-    outputs: list[torch.Tensor] = []
-    for batch_idx in range(batch_size):
-        grid_len = int(grid_lengths[batch_idx].item())
-        sampled = _sample_grid_nearest_single(
-            grid_ct=grid_ids_bct[batch_idx, :, :grid_len].to(dtype=torch.long),
-            grid_times_t=grid_times_sec_bt[batch_idx, :grid_len].to(device=grid_ids_bct.device, dtype=torch.float32),
-            sample_times_tw=sample_times[batch_idx].to(dtype=torch.float32),
-        )
-        outputs.append(sampled.unsqueeze(0))
-    return torch.cat(outputs, dim=0)
+    flat, lo, hi, t_lo, t_hi = _batched_grid_sample_indices(
+        grid_times_sec_bt.float(), sample_times.float(), grid_valid_mask_bt
+    )
+    nearest_idx = torch.where((flat - t_lo).abs() > (t_hi - flat).abs(), hi, lo)
+    return _gather_grid_values(grid_ids_bct.long(), nearest_idx, int(sample_times.shape[-1]))
 
 
 def expand_sampled_id_windows_onehot(
