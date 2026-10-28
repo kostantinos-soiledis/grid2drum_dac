@@ -1,6 +1,6 @@
 # Why the 1024-D post-snap latent is not a diffusion target
 
-The paper (Sec. 3.6) diffuses in the 72 PCA coordinates of $z_q$ rather than
+The paper (Sec. 4.2, Ablations) diffuses in the 72 PCA coordinates of $z_q$ rather than
 in its 1024-D space. These are the measurements behind that paragraph.
 `audit_full1024.py` wrote `results/audit_full1024.json`; the remaining
 values come from the computation in `diagnose_full1024.py`. The two 1024-D
