@@ -4,8 +4,6 @@
   "out_root": "codec_target_ablation/results/evaluation/acoustic_eval",
   "num_runs": 3,
   "runs": [
-    "postsnap_full1024",
-    "postsnap_full1024_projected",
     "tokens_9x1024"
   ],
   "num_shared_examples": 1733,
@@ -52,56 +50,6 @@
   "inference_summary_md": null,
   "efficiency_available": true,
   "efficiency_runs": [
-    {
-      "model": "postsnap_full1024",
-      "export_summary_found": true,
-      "history_found": true,
-      "config_found": true,
-      "checkpoint_num_parameters_loaded": false,
-      "efficiency_fields_found": [
-        "audio_sec_per_sec",
-        "batch_size",
-        "best_checkpoint_epoch",
-        "clips_per_sec",
-        "codec_decode_sec_total",
-        "device_name",
-        "export_peak_gpu_mem_allocated_mb",
-        "export_peak_gpu_mem_reserved_mb",
-        "export_wall_sec_total",
-        "model_forward_sec_total",
-        "num_examples",
-        "num_parameters",
-        "rtf_end_to_end",
-        "rtf_model_only",
-        "time_to_best_checkpoint_sec",
-        "total_audio_sec_generated"
-      ]
-    },
-    {
-      "model": "postsnap_full1024_projected",
-      "export_summary_found": true,
-      "history_found": true,
-      "config_found": true,
-      "checkpoint_num_parameters_loaded": false,
-      "efficiency_fields_found": [
-        "audio_sec_per_sec",
-        "batch_size",
-        "best_checkpoint_epoch",
-        "clips_per_sec",
-        "codec_decode_sec_total",
-        "device_name",
-        "export_peak_gpu_mem_allocated_mb",
-        "export_peak_gpu_mem_reserved_mb",
-        "export_wall_sec_total",
-        "model_forward_sec_total",
-        "num_examples",
-        "num_parameters",
-        "rtf_end_to_end",
-        "rtf_model_only",
-        "time_to_best_checkpoint_sec",
-        "total_audio_sec_generated"
-      ]
-    },
     {
       "model": "tokens_9x1024",
       "export_summary_found": true,

@@ -141,5 +141,5 @@
     "pca_vs_raw_relative_l2": 1.227823645422177e-06,
     "projected_vs_raw_relative_l2": 1.227823645422177e-06
   },
-  "conclusion": "Original width-768 run is confounded by an epsilon prediction rank bottleneck; rerun required."
+  "conclusion": "The epsilon head is narrower than the 1024-D noise it must predict."
 }

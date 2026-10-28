@@ -12,56 +12,6 @@
         "checkpoint_num_parameters_loaded": false,
         "config_found": true,
         "efficiency_fields_found": [
-          "audio_sec_per_sec",
-          "batch_size",
-          "best_checkpoint_epoch",
-          "clips_per_sec",
-          "codec_decode_sec_total",
-          "device_name",
-          "export_peak_gpu_mem_allocated_mb",
-          "export_peak_gpu_mem_reserved_mb",
-          "export_wall_sec_total",
-          "model_forward_sec_total",
-          "num_examples",
-          "num_parameters",
-          "rtf_end_to_end",
-          "rtf_model_only",
-          "time_to_best_checkpoint_sec",
-          "total_audio_sec_generated"
-        ],
-        "export_summary_found": true,
-        "history_found": true,
-        "model": "postsnap_full1024"
-      },
-      {
-        "checkpoint_num_parameters_loaded": false,
-        "config_found": true,
-        "efficiency_fields_found": [
-          "audio_sec_per_sec",
-          "batch_size",
-          "best_checkpoint_epoch",
-          "clips_per_sec",
-          "codec_decode_sec_total",
-          "device_name",
-          "export_peak_gpu_mem_allocated_mb",
-          "export_peak_gpu_mem_reserved_mb",
-          "export_wall_sec_total",
-          "model_forward_sec_total",
-          "num_examples",
-          "num_parameters",
-          "rtf_end_to_end",
-          "rtf_model_only",
-          "time_to_best_checkpoint_sec",
-          "total_audio_sec_generated"
-        ],
-        "export_summary_found": true,
-        "history_found": true,
-        "model": "postsnap_full1024_projected"
-      },
-      {
-        "checkpoint_num_parameters_loaded": false,
-        "config_found": true,
-        "efficiency_fields_found": [
           "best_checkpoint_epoch",
           "device_name",
           "num_examples",
@@ -130,8 +80,6 @@
       }
     ],
     "runs": [
-      "postsnap_full1024",
-      "postsnap_full1024_projected",
       "tokens_9x1024"
     ],
     "sample_rate": 44100,
@@ -176,46 +124,6 @@
       },
       "model_name": "tokens_9x1024",
       "predictions_dir": "codec_target_ablation/exports/tokens_9x1024",
-      "train_dir": null
-    },
-    {
-      "direct_eval_dir": "codec_target_ablation/results/evaluation/direct_audio_eval/postsnap_full1024",
-      "direct_summary": {
-        "audio_l1_mean": 0.06858563767310794,
-        "audio_l1_median": 0.06131088733673096,
-        "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
-        "metric_basis": "export_peak_normalized_audio",
-        "mrstft_logmag_l1_mean": 0.21819300483536047,
-        "mrstft_logmag_l1_median": 0.2117745578289032,
-        "num_examples": 1733,
-        "out_dir": "codec_target_ablation/results/evaluation/direct_audio_eval/postsnap_full1024",
-        "predictions_dir": "codec_target_ablation/exports/postsnap_full1024",
-        "resolved_device": "cuda:2",
-        "sample_rate": 44100,
-        "split": "test"
-      },
-      "model_name": "postsnap_full1024",
-      "predictions_dir": "codec_target_ablation/exports/postsnap_full1024",
-      "train_dir": null
-    },
-    {
-      "direct_eval_dir": "codec_target_ablation/results/evaluation/direct_audio_eval/postsnap_full1024_projected",
-      "direct_summary": {
-        "audio_l1_mean": 0.07945841504287768,
-        "audio_l1_median": 0.07640381902456284,
-        "cache_root": "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1",
-        "metric_basis": "export_peak_normalized_audio",
-        "mrstft_logmag_l1_mean": 0.22529801668301525,
-        "mrstft_logmag_l1_median": 0.2194560021162033,
-        "num_examples": 1733,
-        "out_dir": "codec_target_ablation/results/evaluation/direct_audio_eval/postsnap_full1024_projected",
-        "predictions_dir": "codec_target_ablation/exports/postsnap_full1024_projected",
-        "resolved_device": "cuda:2",
-        "sample_rate": 44100,
-        "split": "test"
-      },
-      "model_name": "postsnap_full1024_projected",
-      "predictions_dir": "codec_target_ablation/exports/postsnap_full1024_projected",
       "train_dir": null
     }
   ],

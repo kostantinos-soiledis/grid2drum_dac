@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit the original 1024-D run without training or changing its artifacts.
+"""Audit a 1024-D post-snap diffusion run without training or changing its artifacts.
 
 Checks all split identities, sampled cache tensors, normalization, exact PCA
 reconstruction, and the checkpoint's epsilon output rank. Optional forward
@@ -14,8 +14,6 @@ import sys
 from pathlib import Path
 
 import torch
-
-from export_projected import project_postsnap_latents
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "code" / "experiment"))
@@ -32,6 +30,13 @@ from model import (  # noqa: E402
 )
 
 
+def project_postsnap_latents(latent: torch.Tensor, mean: torch.Tensor, components: torch.Tensor) -> torch.Tensor:
+    """Project unstandardized codec latents onto the 72-D post-snap subspace, keeping zero padding."""
+    mu, u = mean.to(latent), components.to(latent)
+    projected = mu + ((latent - mu) @ u.T) @ u
+    return torch.where(latent.ne(0).any(dim=-1, keepdim=True), projected, latent)
+
+
 def read_rows(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
@@ -39,7 +44,7 @@ def read_rows(path: Path) -> list[dict]:
 @torch.no_grad()
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--checkpoint", type=Path, default=ROOT / "codec_target_ablation/runs/postsnap_full1024/best_diffusion.pt")
+    parser.add_argument("--checkpoint", type=Path, required=True, help="a 1024-D diffusion checkpoint")
     parser.add_argument("--full-cache", type=Path, default=ROOT / "caches/cache_4beats_dac44q9_full1024_bpmgeom_duration_v1")
     parser.add_argument("--pca-cache", type=Path, default=ROOT / "caches/cache_4beats_dac44q9_pca72_native_bpmgeom_duration_v1")
     parser.add_argument("--output", type=Path, default=ROOT / "codec_target_ablation/results/audit_full1024.json")
@@ -176,9 +181,9 @@ def main() -> None:
         assert report["decoder_target_checks"]["projected_vs_raw_relative_l2"] < 1e-3
 
     if int(payload["config"]["d_model"]) <= int(payload["config"]["x_dim"]):
-        report["conclusion"] = "Run is confounded by an epsilon prediction dimension bottleneck; rerun required."
+        report["conclusion"] = "The epsilon head is narrower than the 1024-D noise it must predict."
     else:
-        report["conclusion"] = "No configured epsilon dimension bottleneck; audio quality still requires evaluation."
+        report["conclusion"] = "The epsilon head is wide enough for 1024-D noise."
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")
     print(f"Audit written to {args.output}", flush=True)

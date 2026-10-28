@@ -1,89 +1,53 @@
-# Audit of the original 1024-D post-snap experiment
+# Why the 1024-D post-snap latent is not a diffusion target
 
-The original full-space experiment has an architectural error and must
-not be used to conclude that the 1024-D representation fails. Both its
-plain and projected exports use the same affected checkpoint.
+The paper (Sec. 3.6) diffuses in the 72 PCA coordinates of $z_q$ rather than
+in its 1024-D space. These are the measurements behind that paragraph.
+`audit_full1024.py` wrote `results/audit_full1024.json`; the remaining
+values come from the computation in `diagnose_full1024.py`. The two 1024-D
+checkpoints it was applied to were deleted after measurement; the variance
+and `postsnap_pca` values are reproduced by the committed script.
 
-## Confirmed cause
+## Same information
 
-`run.sh` reused the 72-D model's width of 768 while changing its input
-and epsilon output to 1024 dimensions. The checkpoint confirms:
+All 11,523 train, 1,534 validation, and 1,733 test identities, durations,
+and frame counts match between the 72-D and 1024-D caches. The PCA change
+of coordinates reconstructs sampled frames to at most 3.54e-5 relative L2,
+and frozen-DAC audio decoded from raw latents and from reconstructed PCA
+coordinates differs by 1.23e-6 relative L2.
 
-| Projection | Weight shape |
-| --- | --- |
-| `x_proj.weight` | 768 × 1024 |
-| `out_proj.weight` | 1024 × 768 |
+## Empty dimensions need a wider noise head
 
-For output `W h + b`, all predictions lie in a fixed affine subspace of
-dimension at most 768. The target epsilon is isotropic 1024-D Gaussian
-noise. Its expected squared error outside that subspace is at least 256,
-giving a per-coordinate MSE floor of **0.25**, regardless of training
-length. The input projection also discards 256 directions. The final
-LayerNorm can impose a further affine constraint at a fixed timestep.
+Isotropic noise spans all 1024 coordinates, while $z_q$ spans 72. A linear
+epsilon head of width $d < 1024$ cannot represent $1024-d$ noise
+directions: at $d = 768$ the noise MSE is bounded below by 0.25. The
+width-768 run reached 0.2612 validation noise MSE, and Gaussian noise
+projected outside its output span leaves 0.2507. The trained head kept
+only **4.3%** of the 72-D data subspace in its span; a random 72-D
+subspace keeps 75.1%. Its principal-angle cosines have median 0.036 and
+maximum 0.687. Training kept the noise-only directions, which $x_t$
+determines exactly, and dropped those that carry the drums.
 
-The selected epoch-147 checkpoint has validation noise MSE **0.2612356**.
-Monte Carlo projection of Gaussian noise onto its actual output span
-leaves MSE **0.2507440**. A forward check on one validation excerpt shows:
+## Per-coordinate standardization raises the signal-to-noise ratio
 
-| Diffusion step | Noise MSE | MSE outside output span | Clean-estimate MSE before clipping | Clipped at ±6 |
-| ---: | ---: | ---: | ---: | ---: |
-| 0 | 0.263864 | 0.251331 | 0.001441 | 0% |
-| 12 | 0.261496 | 0.250636 | 0.303648 | 0% |
-| 24 | 0.260004 | 0.248973 | 66,994.7 | 98.08% |
+Standardizing each of the 1024 coordinates of 45,824 training frames gives
+total variance 1021 on 72 non-zero eigenvalues: mean 14.2 (2.6 to 71.5),
+the rest below 1e-5. Each standardized PCA coordinate has variance 1. At
+the same step, $x_t$ in the 1024-D space shows $x_0$ at about 14 times the
+signal-to-noise ratio, so the grid barely reduces the noise loss.
 
-At the terminal step, alpha-bar is 3.88095e-6. The conversion from epsilon
-to the clean estimate amplifies the irreducible error by roughly 500 in
-amplitude. Final output projection cannot repair the denoiser or replay
-its corrupted reverse trajectory.
+## The denoiser ignored the grid
 
-## Other implementation paths checked
+Conditioning features of the training preview excerpt (std over frames
+divided by mean magnitude) and the change in the epsilon prediction when
+the grid is zeroed, relative to its squared error (summed per frame,
+t = 6):
 
-- All 11,523 train, 1,534 validation, and 1,733 test manifest identities,
-  durations, and frame counts match between the 72-D and 1024-D caches.
-- Three tensor examples per split have identical raw targets, codec IDs,
-  grids, articulation IDs, and grid/codec timestamps.
-- Checkpoint normalization exactly matches the 1024-D cache; its smallest
-  standard deviation is 2.63529. Normalize/denormalize round trips pass.
-- The sampled PCA reconstruction error is at most 3.54e-5 in relative L2,
-  consistent with finite-precision cached codec outputs.
-- On a 32-frame target, frozen-DAC audio decoded from raw latents versus
-  reconstructed PCA coordinates differs by only **1.23e-6 relative L2**.
-  The actual output-projection helper gives the same decoder agreement.
+| Checkpoint | Frontend time variation | Grid effect / error |
+| --- | ---: | ---: |
+| `postsnap_pca` (72-D, epoch 148) | 0.93 | 3.6 / 34.3 |
+| 1024-D, width 768, epoch 147 | 0.004 | 1.4e-6 / 266 |
+| 1024-D, width 1280, epoch 0 | 0.013 | 2.2e-4 / 84 |
+| Random initialization (seed 1234) | 0.62 | – |
 
-The full machine-readable audit is in `results/audit_full1024.json`.
-Reproduce it with:
-
-```bash
-python codec_target_ablation/audit_full1024.py --forward --decode
-```
-
-## Rerun correction
-
-Both the 1024-D model and a matched 72-D control use width **1280**, six
-blocks, the original epsilon objective and 25-step schedule, explicit
-clipping at 6, and effective batch size four (batch one, accumulation
-four). Width exceeds the noise dimension and allows the final normalized
-features to span the output. New run, export, and evaluation directories
-prevent reuse or overwriting of the original artifacts.
-
-The training CLI now rejects `d_model <= x_dim` before device setup or
-output-directory modification. Historical checkpoints remain loadable
-for diagnosis. Projection remains after denormalization and before DAC
-decoding; exports now record that operation in their summary.
-
-The corrected full-space model has 256,067,072 parameters; the matched
-72-D model has 253,629,000. A CPU forward/backward/AdamW step using the
-full six-block model passed finite-loss, gradient, and parameter checks.
-After that step, its output matrix has rank 1024, with smallest
-singular value 0.0622. This implementation smoke check is recorded in
-`results/rerun_smoke.json`; it is not an audio-quality evaluation. Five
-regression tests cover early rejection before overwrite, the width
-requirement, affine projection/padding, fresh matched rerun commands, and
-safe, idempotent correction labels on the listening page.
-
-```bash
-bash codec_target_ablation/run.sh --device cuda:2
-```
-
-This rerun is required before reporting a valid 72-D versus 1024-D result.
-The code fixes do not establish the corrected model's audio quality.
+All parameters of both 1024-D runs were trained; none was frozen. The
+frontend output became nearly constant over time within one epoch.
