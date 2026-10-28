@@ -52,16 +52,16 @@ done
 
 ## Listening page
 
-The paper's listening page is maintained on the `anonymous` branch.
-Extend its existing twelve examples from the evaluated exports with:
+The paper's listening page is maintained on the `anonymous` branch. Lay
+out each of its twelve examples as the recording, our model, and the
+paper's eight ablations in a two-column grid with:
 
 ```bash
 python codec_target_ablation/update_demo.py --docs-root /path/to/anonymous-checkout/docs
 ```
 
-This requires NumPy, SoundFile, and pyloudnorm. It adds the plain 72-D
-model and the token control, matching each file by recording ID and beat
-index. Audio follows the existing page's BS.1770 loudness matching with a
-0.999 peak limit. `docs/codec_target_examples.json` records source exports
-and gains for every new audio file. Repeating the command updates the same
-players without duplicating them.
+This requires NumPy, SoundFile, and pyloudnorm. It matches each file by
+recording ID and beat index. Ablation audio is BS.1770 loudness matched to
+the recording with a 0.999 peak limit and fitted to the recording's length,
+like our model's clip. `docs/ablation_examples.json` records source exports
+and gains. Repeating the command rebuilds the same grid.

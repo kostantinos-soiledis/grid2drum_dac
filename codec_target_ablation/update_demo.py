@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Add codec target comparisons to the paper's existing static listening page.
+"""Lay out the paper's ablations on the static listening page.
 
-Run against the docs directory on the anonymous branch. Existing example
-identities, EDG plots, recording references, and TRIA players are retained.
-Audio comes from the evaluated exports and uses the page's BS.1770 loudness
-matching, with gain limited to keep peaks below 0.999.
+Run against the docs directory on the anonymous branch. Each example keeps its
+EDG plot, recording, and TRIA players; its right column becomes the recording,
+our model, and the paper's eight ablations in a two-column grid. Ablation audio
+comes from the evaluated test exports, BS.1770 loudness matched to the
+recording with peaks below 0.999, and trimmed or zero-padded to the recording's
+length, like our model's clip.
 
     python codec_target_ablation/update_demo.py --docs-root <anonymous-checkout>/docs
 """
@@ -24,24 +26,28 @@ import soundfile as sf
 
 
 ROOT = Path(__file__).resolve().parents[1]
+# (audio name, export, label, detail), shown two per row.
 ARMS = (
-    ("pca72", "runs/final/exports/postsnap_pca", "72-D post-snap", "plain diffusion, 25 steps"),
-    ("tokens", "codec_target_ablation/exports/tokens_9x1024", "Discrete tokens", "parallel classifier, argmax"),
+    ("presnap", "runs/final/exports/presnap_latent", "Pre-snap latent", ""),
+    ("tokens", "codec_target_ablation/exports/tokens_9x1024", "Discrete tokens", "parallel classifier"),
+    ("regression", "runs/final/exports/regression_6layer", "Regression", "6 layers"),
+    ("regression8", "runs/final/exports/regression_8layer_capacity", "Regression", "8 layers"),
+    ("ours90", "runs/final/exports/grid_90hz", "90 Hz grid", ""),
+    ("ours120", "runs/final/exports/grid_120hz", "120 Hz grid", ""),
+    ("ours500", "runs/final/exports/grid_500hz", "500 Hz grid", ""),
+    ("pca72", "runs/final/exports/postsnap_pca", "Without RVQ-CE", "plain diffusion"),
 )
-BEGIN = "<!-- codec-target-controls:start -->"
-END = "<!-- codec-target-controls:end -->"
+BEGIN = "<!-- ablations:start -->"
+END = "<!-- ablations:end -->"
 DESCRIPTION = (
-    '<p class="codec-description">Expand <strong>Codec target ablation</strong> '
-    'for 72-D post-snap diffusion and parallel discrete-token classification. '
-    'Both use the 250 Hz EDG without the auxiliary RVQ-CE loss; our main model '
-    'above uses that loss.</p>'
+    '<p class="abl-description">The 90, 120, and 500 Hz grids keep our model\'s '
+    'auxiliary RVQ-CE loss; the other five ablations use the 250 Hz grid without '
+    'it, as in the paper.</p>'
 )
-STYLE = """/* codec-target-controls */
-.codec-controls { border-top: 1px solid var(--line); padding-top: 10px; }
-.codec-controls summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--ours); }
-.codec-controls summary:focus-visible { outline: 2px solid var(--ours); outline-offset: 3px; }
-.codec-controls .duo { margin-top: 12px; }
-.codec-controls .cell { border-top-color: var(--abl); }
+STYLE = """/* ablations */
+.abl { display: grid; gap: 8px; }
+.abl-head { font-weight: 700; font-size: 14px; color: var(--ours); }
+.abl .cell { border-top-color: var(--abl); }
 """
 
 
@@ -67,8 +73,10 @@ def match_loudness(source: Path, reference: Path, destination: Path) -> dict:
         peak = float(np.abs(audio).max())
         if peak * gain > 0.999:
             gain, limited = 0.999 / peak, True
-    sf.write(destination, (audio * gain).astype(np.float32), sr, subtype="PCM_16")
-    return {"sample_rate": sr, "num_samples": len(audio), "gain_db": 20 * math.log10(gain), "peak_limited": limited}
+    fitted = np.pad(audio * gain, (0, max(0, len(target) - len(audio))))[: len(target)]
+    sf.write(destination, fitted.astype(np.float32), sr, subtype="PCM_16")
+    return {"sample_rate": sr, "export_num_samples": len(audio), "num_samples": len(fitted),
+            "gain_db": 20 * math.log10(gain), "peak_limited": limited}
 
 
 def main() -> None:
@@ -112,37 +120,42 @@ def main() -> None:
             item["audio"][name] = {"file": f"audio/{destination.name}", "export": str(export), **matching}
         provenance.append(item)
 
-    def extend_article(match: re.Match) -> str:
-        article = re.sub(re.escape(BEGIN) + r".*?" + re.escape(END), "", match[0], flags=re.S)
-        prefix = re.search(r'src="audio/(\d+)_target.wav"', article)[1]
-        cells = [
-            f'<div class="cell {name}"><span class="lab">{title}<em>{detail}</em></span>'
-            f'<audio controls preload="none" aria-label="Example {prefix}: {title}" '
+    def lay_out(match: re.Match) -> str:
+        pair, inner, tail = match[1], match[2], match[3]
+        prefix = re.search(r'src="audio/(\d+)_target.wav"', inner)[1]
+        target = re.search(r'<div class="cell target">.*?</audio></div>', inner, flags=re.S)
+        ours = re.search(r'<div class="cell ours">.*?</audio></div>', inner, flags=re.S)
+        if target is None or ours is None:
+            raise ValueError(f"unexpected layout in example {prefix}")
+        cells = "".join(
+            f'<div class="cell {name}"><span class="lab">{title}{f"<em>{detail}</em>" if detail else ""}</span>'
+            f'<audio controls preload="none" aria-label="Example {prefix}: {title}{f", {detail}" if detail else ""}" '
             f'src="audio/{prefix}_{name}.wav"></audio></div>'
             for name, _, title, detail in ARMS
-        ]
-        controls = BEGIN + '<details class="codec-controls"><summary>Codec target ablation</summary>'
-        controls += '<div class="duo">' + "".join(cells) + '</div></details>' + END
-        # The pair ends immediately before the TRIA section; keep both groups intact.
-        anchor = '</div>\n  </div>\n  <div class="tria">'
-        if article.count(anchor) != 1:
-            raise ValueError(f"unexpected layout in example {prefix}")
-        return article.replace(anchor, controls + anchor)
+        )
+        ablations = f'{BEGIN}<div class="abl"><span class="abl-head">Ablations</span><div class="duo">{cells}</div></div>{END}'
+        return f"{pair}{target[0]}\n      {ours[0]}\n      {ablations}{tail}"
 
-    source = re.sub(r'<article class="bar">.*?</article>', extend_article, source, flags=re.S)
-    if "/* codec-target-controls */" not in source:
+    # The right column ends immediately before the TRIA section.
+    source, count = re.subn(r'(<div class="pair">)(.*?)(</div>\n  </div>\n  <div class="tria">)', lay_out, source, flags=re.S)
+    if count != len(examples):
+        raise ValueError(f"laid out {count} of {len(examples)} examples")
+    # Earlier versions of this script added a collapsible codec block; remove its leftovers.
+    source = re.sub(r"/\* codec-target-controls \*/\n(?:\.codec-controls[^\n]*\n)*", "", source)
+    source = re.sub(r'\s*<p class="codec-(?:audit-note|description)".*?</p>', "", source, flags=re.S)
+    if "/* ablations */" not in source:
         source = source.replace("</style>", STYLE + "</style>", 1)
-    source = re.sub(r'<p class="codec-audit-note".*?</p>', "", source, flags=re.S)
-    if 'class="codec-description"' in source:
-        source = re.sub(r'<p class="codec-description">.*?</p>', lambda _: DESCRIPTION, source, flags=re.S)
+    if 'class="abl-description"' in source:
+        source = re.sub(r'<p class="abl-description">.*?</p>', lambda _: DESCRIPTION, source, flags=re.S)
     else:
         source = source.replace('  </section>\n  <div class="list">', f'    {DESCRIPTION}\n  </section>\n  <div class="list">', 1)
     page.write_text(source)
-    (docs / "codec_target_examples.json").write_text(json.dumps({
-        "split": "test", "normalization": "BS.1770 loudness matched to recording, peak capped at 0.999",
+    (docs / "ablation_examples.json").write_text(json.dumps({
+        "split": "test",
+        "normalization": "BS.1770 loudness matched to recording, peak capped at 0.999, fitted to the recording's length",
         "examples": provenance,
     }, indent=2) + "\n")
-    print(f"Updated {page}: {len(examples)} examples, {len(examples) * len(ARMS)} new audio players")
+    print(f"Updated {page}: {len(examples)} examples, {len(examples) * len(ARMS)} ablation players")
 
 
 if __name__ == "__main__":
