@@ -29,7 +29,7 @@ Git. The full pipeline can regenerate local artifacts with `run.sh`.
 ## Why not diffuse in the 1024-D post-snap latent
 
 The paper diffuses in the 72 PCA coordinates of $z_q$ rather than in its
-1024-D space (Sec. 3.6). `AUDIT.md` gives the measurements behind that
+1024-D space (Sec. 4.2, Ablations). `AUDIT.md` gives the measurements behind that
 paragraph; these two scripts produce them without training anything:
 
 ```bash

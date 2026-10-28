@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Why we diffuse in the 72 PCA coordinates rather than the 1024-D post-snap latent (paper, Sec. 3.6).
+"""Why we diffuse in the 72 PCA coordinates rather than the 1024-D post-snap latent (paper, Sec. 4.2).
 
 Three CPU measurements; nothing is trained or rewritten.
 
