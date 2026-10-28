@@ -22,22 +22,6 @@
           "num_samples": 77312,
           "gain_db": -3.474671882781955,
           "peak_limited": false
-        },
-        "full1024": {
-          "file": "audio/01_full1024.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024/wavs/000006__drummer1_eval_session_1__beat_0032.wav",
-          "sample_rate": 44100,
-          "num_samples": 77312,
-          "gain_db": -5.253950517604626,
-          "peak_limited": false
-        },
-        "full1024_projected": {
-          "file": "audio/01_full1024_projected.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024_projected/wavs/000006__drummer1_eval_session_1__beat_0032.wav",
-          "sample_rate": 44100,
-          "num_samples": 77312,
-          "gain_db": -10.467196381774393,
-          "peak_limited": false
         }
       }
     },
@@ -60,22 +44,6 @@
           "sample_rate": 44100,
           "num_samples": 76288,
           "gain_db": -0.7472660882915072,
-          "peak_limited": false
-        },
-        "full1024": {
-          "file": "audio/02_full1024.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024/wavs/000114__drummer1_eval_session_7__beat_0028.wav",
-          "sample_rate": 44100,
-          "num_samples": 76288,
-          "gain_db": -4.4953497044683495,
-          "peak_limited": false
-        },
-        "full1024_projected": {
-          "file": "audio/02_full1024_projected.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024_projected/wavs/000114__drummer1_eval_session_7__beat_0028.wav",
-          "sample_rate": 44100,
-          "num_samples": 76288,
-          "gain_db": -1.4874167004079475,
           "peak_limited": false
         }
       }
@@ -100,22 +68,6 @@
           "num_samples": 82944,
           "gain_db": -5.489313184897945,
           "peak_limited": false
-        },
-        "full1024": {
-          "file": "audio/03_full1024.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024/wavs/000432__drummer1_session2_35__beat_0120.wav",
-          "sample_rate": 44100,
-          "num_samples": 82944,
-          "gain_db": -2.9426373310472655,
-          "peak_limited": false
-        },
-        "full1024_projected": {
-          "file": "audio/03_full1024_projected.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024_projected/wavs/000432__drummer1_session2_35__beat_0120.wav",
-          "sample_rate": 44100,
-          "num_samples": 82944,
-          "gain_db": -9.971460699985833,
-          "peak_limited": false
         }
       }
     },
@@ -138,22 +90,6 @@
           "sample_rate": 44100,
           "num_samples": 106496,
           "gain_db": -2.7266230260356,
-          "peak_limited": false
-        },
-        "full1024": {
-          "file": "audio/04_full1024.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024/wavs/000483__drummer3_session2_10__beat_0016.wav",
-          "sample_rate": 44100,
-          "num_samples": 106496,
-          "gain_db": -5.686129681538638,
-          "peak_limited": false
-        },
-        "full1024_projected": {
-          "file": "audio/04_full1024_projected.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024_projected/wavs/000483__drummer3_session2_10__beat_0016.wav",
-          "sample_rate": 44100,
-          "num_samples": 106496,
-          "gain_db": -9.377882840815996,
           "peak_limited": false
         }
       }
@@ -178,22 +114,6 @@
           "num_samples": 65024,
           "gain_db": -17.842337067482834,
           "peak_limited": false
-        },
-        "full1024": {
-          "file": "audio/05_full1024.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024/wavs/000564__drummer5_eval_session_4__beat_0068.wav",
-          "sample_rate": 44100,
-          "num_samples": 65024,
-          "gain_db": -12.710325651935907,
-          "peak_limited": false
-        },
-        "full1024_projected": {
-          "file": "audio/05_full1024_projected.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024_projected/wavs/000564__drummer5_eval_session_4__beat_0068.wav",
-          "sample_rate": 44100,
-          "num_samples": 65024,
-          "gain_db": -18.47633187263109,
-          "peak_limited": false
         }
       }
     },
@@ -217,22 +137,6 @@
           "num_samples": 111104,
           "gain_db": 0.02084478715833573,
           "peak_limited": false
-        },
-        "full1024": {
-          "file": "audio/06_full1024.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024/wavs/000802__drummer5_session1_7__beat_0220.wav",
-          "sample_rate": 44100,
-          "num_samples": 111104,
-          "gain_db": 0.4367260500636989,
-          "peak_limited": true
-        },
-        "full1024_projected": {
-          "file": "audio/06_full1024_projected.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024_projected/wavs/000802__drummer5_session1_7__beat_0220.wav",
-          "sample_rate": 44100,
-          "num_samples": 111104,
-          "gain_db": 0.4367260500636989,
-          "peak_limited": true
         }
       }
     },
@@ -255,22 +159,6 @@
           "sample_rate": 44100,
           "num_samples": 65024,
           "gain_db": -9.941675464581065,
-          "peak_limited": false
-        },
-        "full1024": {
-          "file": "audio/07_full1024.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024/wavs/001002__drummer7_eval_session_4__beat_0068.wav",
-          "sample_rate": 44100,
-          "num_samples": 65024,
-          "gain_db": -9.067838492687343,
-          "peak_limited": false
-        },
-        "full1024_projected": {
-          "file": "audio/07_full1024_projected.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024_projected/wavs/001002__drummer7_eval_session_4__beat_0068.wav",
-          "sample_rate": 44100,
-          "num_samples": 65024,
-          "gain_db": -13.177385652147883,
           "peak_limited": false
         }
       }
@@ -295,22 +183,6 @@
           "num_samples": 105472,
           "gain_db": -1.638726983411693,
           "peak_limited": false
-        },
-        "full1024": {
-          "file": "audio/08_full1024.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024/wavs/001115__drummer7_session1_16__beat_0056.wav",
-          "sample_rate": 44100,
-          "num_samples": 105472,
-          "gain_db": 0.4367260500636989,
-          "peak_limited": true
-        },
-        "full1024_projected": {
-          "file": "audio/08_full1024_projected.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024_projected/wavs/001115__drummer7_session1_16__beat_0056.wav",
-          "sample_rate": 44100,
-          "num_samples": 105472,
-          "gain_db": 0.4367260500636989,
-          "peak_limited": true
         }
       }
     },
@@ -333,22 +205,6 @@
           "sample_rate": 44100,
           "num_samples": 77824,
           "gain_db": -0.9839407874749142,
-          "peak_limited": false
-        },
-        "full1024": {
-          "file": "audio/09_full1024.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024/wavs/001303__drummer7_session3_24__beat_0104.wav",
-          "sample_rate": 44100,
-          "num_samples": 77824,
-          "gain_db": -1.7241103118705539,
-          "peak_limited": false
-        },
-        "full1024_projected": {
-          "file": "audio/09_full1024_projected.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024_projected/wavs/001303__drummer7_session3_24__beat_0104.wav",
-          "sample_rate": 44100,
-          "num_samples": 77824,
-          "gain_db": -5.037877800904731,
           "peak_limited": false
         }
       }
@@ -373,22 +229,6 @@
           "num_samples": 100352,
           "gain_db": -3.960109393286511,
           "peak_limited": false
-        },
-        "full1024": {
-          "file": "audio/10_full1024.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024/wavs/001364__drummer8_eval_session_2__beat_0032.wav",
-          "sample_rate": 44100,
-          "num_samples": 100352,
-          "gain_db": -9.785489436712734,
-          "peak_limited": false
-        },
-        "full1024_projected": {
-          "file": "audio/10_full1024_projected.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024_projected/wavs/001364__drummer8_eval_session_2__beat_0032.wav",
-          "sample_rate": 44100,
-          "num_samples": 100352,
-          "gain_db": -9.564185994719534,
-          "peak_limited": false
         }
       }
     },
@@ -411,22 +251,6 @@
           "sample_rate": 44100,
           "num_samples": 100864,
           "gain_db": -10.206734793112645,
-          "peak_limited": false
-        },
-        "full1024": {
-          "file": "audio/11_full1024.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024/wavs/001499__drummer8_eval_session_9__beat_0032.wav",
-          "sample_rate": 44100,
-          "num_samples": 100864,
-          "gain_db": -7.097115398830201,
-          "peak_limited": false
-        },
-        "full1024_projected": {
-          "file": "audio/11_full1024_projected.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024_projected/wavs/001499__drummer8_eval_session_9__beat_0032.wav",
-          "sample_rate": 44100,
-          "num_samples": 100864,
-          "gain_db": -8.344008491422645,
           "peak_limited": false
         }
       }
@@ -451,25 +275,8 @@
           "num_samples": 59392,
           "gain_db": -7.419418213423552,
           "peak_limited": false
-        },
-        "full1024": {
-          "file": "audio/12_full1024.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024/wavs/001688__drummer9_session1_24__beat_0096.wav",
-          "sample_rate": 44100,
-          "num_samples": 59392,
-          "gain_db": -5.338515917093687,
-          "peak_limited": false
-        },
-        "full1024_projected": {
-          "file": "audio/12_full1024_projected.wav",
-          "export": "codec_target_ablation/exports/postsnap_full1024_projected/wavs/001688__drummer9_session1_24__beat_0096.wav",
-          "sample_rate": 44100,
-          "num_samples": 59392,
-          "gain_db": -9.804500158825162,
-          "peak_limited": false
         }
       }
     }
-  ],
-  "legacy_full1024_status": "invalid: width-768 epsilon head for 1024-D noise; rerun pending"
+  ]
 }
