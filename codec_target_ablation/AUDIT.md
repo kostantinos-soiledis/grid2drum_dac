@@ -33,7 +33,9 @@ Standardizing each of the 1024 coordinates of 45,824 training frames gives
 total variance 1021 on 72 non-zero eigenvalues: mean 14.2 (2.6 to 71.5),
 the rest below 1e-5. Each standardized PCA coordinate has variance 1. At
 the same step, $x_t$ in the 1024-D space shows $x_0$ at about 14 times the
-signal-to-noise ratio. Multiplying every std by $\sqrt{1024/72}$ gives the
+signal-to-noise ratio, $14.2\,\bar\alpha_t/(1-\bar\alpha_t)$: with the
+25-step cosine schedule it exceeds 1 at 20 steps, against 12 for unit
+variance. Multiplying every std by $\sqrt{1024/72}$ gives the
 72 directions mean variance 1.00 (0.18 to 5.0), but does not restore use of
 the grid (below).
 
